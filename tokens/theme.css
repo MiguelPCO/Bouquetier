@@ -1,0 +1,9 @@
+@theme {
+  --color-canvas:  oklch(0.9422 0.0081 97);   /* #EDECE6 */
+  --color-surface: oklch(1      0      0);    /* #FFFFFF */
+  --color-ink:     oklch(0.2344 0.0101 131);  /* #1C1F1A */
+  --color-muted:   oklch(0.5355 0.0143 125);  /* #6B6F66 */
+  --color-line:    oklch(0.8937 0.0124 89);   /* #DEDCD3 */
+  --color-accent:  oklch(0.4449 0.0664 141);  /* #3F5D3A */
+  --color-warn:    oklch(0.5107 0.0889 62);   /* #8A5A2B */
+}

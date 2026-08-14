@@ -1,0 +1,17 @@
+@import "tailwindcss";
+@import "../tokens/theme.css";
+
+@theme inline {
+  --font-display: var(--font-fraunces);
+  --font-sans: var(--font-plex-sans);
+  --font-mono: var(--font-plex-mono);
+}
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  background: var(--color-canvas);
+  color: var(--color-ink);
+}
