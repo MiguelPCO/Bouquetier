@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest'
 import { layout } from './vogel'
 import { SPECIES } from './species'
 
-const peony = SPECIES.find((s) => s.id === 'peony')!
-const tulip = SPECIES.find((s) => s.id === 'tulip')!
+const peony = SPECIES.find((s) => s.id === 'peonia')!
+const tulip = SPECIES.find((s) => s.id === 'tulipan')!
 const params = { density: 17, tiltDeg: 62, rotation: 0, jitter: 0.5, spread: 0.55 }
 
 describe('layout', () => {
@@ -28,15 +28,15 @@ describe('layout', () => {
   })
 
   it('orders focal stems before green stems', () => {
-    const euca = SPECIES.find((s) => s.id === 'euca')!
+    const euca = SPECIES.find((s) => s.id === 'eucalipto')!
     const stems = [
       { uid: 1, species: euca },
       { uid: 2, species: peony },
     ]
 
     const placed = layout(stems, params)
-    const peonyStep = placed.find((p) => p.species.id === 'peony')!
-    const eucaStep = placed.find((p) => p.species.id === 'euca')!
+    const peonyStep = placed.find((p) => p.species.id === 'peonia')!
+    const eucaStep = placed.find((p) => p.species.id === 'eucalipto')!
 
     expect(peonyStep.n).toBeLessThan(eucaStep.n)
   })
