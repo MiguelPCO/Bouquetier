@@ -3,7 +3,7 @@
 
 import { useMemo } from 'react'
 import { useBouquetStore } from '@/store/bouquet'
-import { layout, noise, PX_PER_CM } from '@/lib/vogel'
+import { layout, noise, headPx, autoDensity } from '@/lib/vogel'
 import { FlowerHead } from './FlowerHead'
 
 const TILT_DEG = 62
@@ -13,17 +13,12 @@ const SPREAD = 0.55
 
 export function BouquetCanvas() {
   const stems = useBouquetStore((state) => state.stems)
-  const tilt = Math.cos((TILT_DEG * Math.PI) / 180)
 
-  const density = useMemo(() => {
-    if (!stems.length) return 17
-    const avgHeadPx = stems.reduce((sum, stem) => sum + (stem.species.headMm / 10) * PX_PER_CM, 0) / stems.length
-    return Math.round(avgHeadPx * 0.86)
-  }, [stems])
+  const density = useMemo(() => autoDensity(stems), [stems])
 
   const placed = useMemo(
-    () => layout(stems, { density, tilt, rotation: (ROTATION_DEG * Math.PI) / 180, jitter: JITTER, spread: SPREAD }),
-    [stems, density, tilt]
+    () => layout(stems, { density, tiltDeg: TILT_DEG, rotation: (ROTATION_DEG * Math.PI) / 180, jitter: JITTER, spread: SPREAD }),
+    [stems, density]
   )
 
   return (
@@ -49,7 +44,7 @@ export function BouquetCanvas() {
             />
             <line x1="0" y1="0" x2={baseX} y2={baseY} stroke="var(--color-accent)" strokeWidth="1.4" strokeLinecap="round" opacity="0.55" />
             <g transform={`translate(${stem.x} ${stem.y}) scale(${stem.scale})`}>
-              <FlowerHead shape={stem.species.shape} size={(stem.species.headMm / 10) * PX_PER_CM} color={stem.species.color} uid={stem.uid} />
+              <FlowerHead shape={stem.species.shape} size={headPx(stem.species)} color={stem.species.color} uid={stem.uid} />
             </g>
           </g>
         )

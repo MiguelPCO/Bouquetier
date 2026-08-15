@@ -4,7 +4,7 @@ import { SPECIES } from './species'
 
 const peony = SPECIES.find((s) => s.id === 'peony')!
 const tulip = SPECIES.find((s) => s.id === 'tulip')!
-const params = { density: 17, tilt: 0.47, rotation: 0, jitter: 0.5, spread: 0.55 }
+const params = { density: 17, tiltDeg: 62, rotation: 0, jitter: 0.5, spread: 0.55 }
 
 describe('layout', () => {
   it('is deterministic for the same stems and params', () => {
@@ -39,5 +39,12 @@ describe('layout', () => {
     const eucaStep = placed.find((p) => p.species.id === 'euca')!
 
     expect(peonyStep.n).toBeLessThan(eucaStep.n)
+  })
+
+  it('matches a pinned golden value for the ported layout math', () => {
+    const stems = [{ uid: 1, species: peony }]
+    const [placed] = layout(stems, { density: 20, tiltDeg: 0, rotation: 0, jitter: 0, spread: 0 })
+
+    expect(placed!.x).toBeCloseTo(-14.7455467362, 6)
   })
 })
