@@ -4,9 +4,9 @@
 
 **Goal:** Ship a printable export page — shopping list with seasonal substitution, composition validator, assembly diagram (cuts/angles/tie point/hand order), and browser-native print — for the Tallo bouquet composer.
 
-**Architecture:** Three new pure-function lib modules (`shoppingList.ts`, `validator.ts`, `assembly.ts`) feed three new self-contained client components that each read `useBouquetStore` directly (same pattern as existing `SpeciesCatalog.tsx`/`BouquetCanvas.tsx`), composed on a new `/export` route. A small existing-code fix hoists 4 hardcoded composition constants out of `BouquetCanvas.tsx` so the export page's diagram matches what the canvas shows.
+**Architecture:** Three new pure-function lib modules (`shoppingList.ts`, `validator.ts`, `assembly.ts`) feed three new self-contained client components that each read `useBouquetStore` directly (same pattern as existing `SpeciesCatalog.tsx`/`BouquetCanvas.tsx`), composed on a new `/export` route. Two small existing-code fixes ride along: hoisting composition defaults out of `BouquetCanvas.tsx` so the diagram matches the canvas, and persisting the store so `/export` survives a reload.
 
-**Tech Stack:** Next.js 15 App Router, React 19, TypeScript strict, Zustand, Tailwind v4, Vitest. No new dependencies — print via `@media print` + `window.print()`.
+**Tech Stack:** Next.js 15 App Router, React 19, TypeScript strict, Zustand (incl. `zustand/middleware` persist), Tailwind v4, Vitest. No new dependencies — print via `@media print` + `window.print()`.
 
 **Spec:** `docs/superpowers/specs/2026-08-16-sprint-3-salidas-design.md`
 
@@ -16,13 +16,84 @@
 - No PDF library — browser print only (spec: Non-goals).
 - No dark mode — canvas token is light/cream only, per Sprint 0 rule.
 - Language: Spanish UI copy, matching rest of app.
-- No Playwright in this repo — automated tests are Vitest-only on `lib/*.ts`; component/page verification is manual browser check (spec: Testing, corrected 2026-08-16).
+- No Playwright in this repo — automated tests are Vitest-only on `lib/*.ts`; component/page verification is manual browser check.
 - `BIND_RATIO`, `MAX_TILT_DEG`, `HANDLE_CM` are disclosed estimates, not lab-verified — must say so in a code comment where each is defined.
 - Imports: lib-to-lib uses relative paths (`./species`), components use `@/lib/...` / `@/store/...` — matches existing convention throughout the repo.
+- The assembly diagram's angle and cut-length formulas were verified empirically against real `layout()` output before this plan was written (see Task 3) — do not substitute a different geometric approach without re-deriving and re-verifying golden values the same way.
 
 ---
 
-### Task 1: Hoist `DEFAULT_COMPOSITION` out of `BouquetCanvas.tsx`
+### Task 1: Persist the bouquet store
+
+**Files:**
+- Modify: `store/bouquet.ts`
+
+**Interfaces:**
+- Consumes: nothing new.
+- Produces: `useBouquetStore` unchanged in shape (`stems`, `nextUid`, `add`, `remove`) — only its persistence behavior changes. No other task depends on this change's internals, but every task after it benefits: `/export` (Task 9) will survive a reload instead of showing the empty state.
+
+**Why now, why here:** the export page's whole purpose is a page used standing in a shop — a mobile reload or tab eviction must not lose the bouquet. The store is currently in-memory only. `zustand/middleware`'s `persist` ships with the `zustand` package already in `package.json` — no new dependency.
+
+- [ ] **Step 1: Add persist middleware**
+
+Replace the full contents of `store/bouquet.ts`:
+
+```ts
+import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
+import type { Species, Stem } from '@/lib/species'
+
+interface BouquetState {
+  stems: Stem[]
+  nextUid: number
+  add: (species: Species) => void
+  remove: (speciesId: string) => void
+}
+
+export const useBouquetStore = create<BouquetState>()(
+  persist(
+    (set) => ({
+      stems: [],
+      nextUid: 1,
+      add: (species) =>
+        set((state) => ({
+          stems: [...state.stems, { uid: state.nextUid, species }],
+          nextUid: state.nextUid + 1,
+        })),
+      remove: (speciesId) =>
+        set((state) => {
+          const reversedIdx = [...state.stems].reverse().findIndex((s) => s.species.id === speciesId)
+          if (reversedIdx === -1) return state
+          const realIdx = state.stems.length - 1 - reversedIdx
+          return { stems: state.stems.filter((_, i) => i !== realIdx) }
+        }),
+    }),
+    { name: 'tallo-bouquet' }
+  )
+)
+```
+
+The only changes from the current file: the `persist` import, and wrapping the existing store creator in `persist(..., { name: 'tallo-bouquet' })`. `add`/`remove` logic is untouched.
+
+- [ ] **Step 2: Type-check**
+
+Run: `npx tsc --noEmit`
+Expected: no errors
+
+- [ ] **Step 3: Manual verification**
+
+Run: `npm run dev`. On `/`, add a few stems. Reload the page (hard refresh). Confirm the stems are still there (check DevTools → Application → Local Storage → `tallo-bouquet` key exists with the stems). Confirm removing a stem still works and persists across reload too.
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add store/bouquet.ts
+git commit -m "feat: persist bouquet store to localStorage so /export survives a reload"
+```
+
+---
+
+### Task 2: Hoist `DEFAULT_COMPOSITION`, expose `theta` from `layout()`
 
 **Files:**
 - Modify: `lib/vogel.ts`
@@ -31,9 +102,11 @@
 
 **Interfaces:**
 - Consumes: existing `Composition` interface in `lib/vogel.ts`.
-- Produces: `export const DEFAULT_COMPOSITION: Omit<Composition, 'density'>` from `lib/vogel.ts` — consumed by Task 7 (`AssemblyDiagram.tsx`) and already by `BouquetCanvas.tsx`. Shape: `{ tiltDeg: number; rotation: number; jitter: number; spread: number }`.
+- Produces:
+  - `export const DEFAULT_COMPOSITION: Omit<Composition, 'density'>` — consumed by Task 8 (`AssemblyDiagram.tsx`) and already by `BouquetCanvas.tsx`. Shape: `{ tiltDeg: number; rotation: number; jitter: number; spread: number }`.
+  - `PlacedStem.theta: number` (radians) — new field on the existing interface, consumed by Task 3 (`lib/assembly.ts`).
 
-- [ ] **Step 1: Add `DEFAULT_COMPOSITION` to `lib/vogel.ts`**
+- [ ] **Step 1: Add `DEFAULT_COMPOSITION` and `theta` to `lib/vogel.ts`**
 
 Add directly after the `Composition` interface definition:
 
@@ -48,9 +121,70 @@ export const DEFAULT_COMPOSITION: Omit<Composition, 'density'> = {
 
 These four values are copied verbatim from the current `BouquetCanvas.tsx` constants (`TILT_DEG = 62`, `ROTATION_DEG = 0` converted to radians is still `0`, `JITTER = 0.5`, `SPREAD = 0.55`) — this is a hoist, not a behavior change.
 
-- [ ] **Step 2: Write a test asserting the exported shape**
+Add `theta: number` to the `PlacedStem` interface:
 
-In `lib/vogel.test.ts`, add a new test inside the existing `describe('layout', ...)` block (after the golden-value test):
+```ts
+export interface PlacedStem extends Stem {
+  n: number
+  x: number
+  y: number
+  r: number
+  theta: number
+  depth: number
+  sortKey: number
+  scale: number
+  tone: number
+}
+```
+
+In `layout()`, the returned object currently is:
+
+```ts
+    return {
+      ...stem,
+      n,
+      x,
+      y,
+      r,
+      depth: sin,
+      sortKey: r * sin,
+      scale: 1 + sin * 0.16,
+      tone: 0.72 + (sin + 1) * 0.14,
+    }
+```
+
+Add `theta` to it (it's already computed earlier in the function body as `const theta = n * GOLDEN + rotation + ja * jitter * 0.9`):
+
+```ts
+    return {
+      ...stem,
+      n,
+      x,
+      y,
+      r,
+      theta,
+      depth: sin,
+      sortKey: r * sin,
+      scale: 1 + sin * 0.16,
+      tone: 0.72 + (sin + 1) * 0.14,
+    }
+```
+
+- [ ] **Step 2: Write tests for both additions**
+
+In `lib/vogel.test.ts`, update the import line from:
+
+```ts
+import { layout } from './vogel'
+```
+
+to:
+
+```ts
+import { layout, DEFAULT_COMPOSITION, GOLDEN } from './vogel'
+```
+
+Add two new tests inside the existing `describe('layout', ...)` block (after the golden-value test):
 
 ```ts
   it('exposes a DEFAULT_COMPOSITION matching the canvas defaults', () => {
@@ -61,24 +195,21 @@ In `lib/vogel.test.ts`, add a new test inside the existing `describe('layout', .
       spread: 0.55,
     })
   })
+
+  it('returns the spiral angle theta for each placed stem', () => {
+    const stems = [{ uid: 1, species: peony }]
+    const [placed] = layout(stems, { density: 20, tiltDeg: 0, rotation: 0, jitter: 0, spread: 0 })
+
+    expect(placed!.theta).toBeCloseTo(GOLDEN, 10)
+  })
 ```
 
-Update the top import line from:
+(`peony` is already defined at the top of this file from the existing tests, and `GOLDEN` is already exported by `lib/vogel.ts`.)
 
-```ts
-import { layout } from './vogel'
-```
-
-to:
-
-```ts
-import { layout, DEFAULT_COMPOSITION } from './vogel'
-```
-
-- [ ] **Step 3: Run tests to verify the new test passes and nothing else broke**
+- [ ] **Step 3: Run tests to verify they pass**
 
 Run: `npm test`
-Expected: all existing tests plus the new one PASS (18 total in `vogel.test.ts` + `species.test.ts`'s 13 unaffected).
+Expected: all existing tests plus the 2 new ones PASS.
 
 - [ ] **Step 4: Update `BouquetCanvas.tsx` to use `DEFAULT_COMPOSITION`**
 
@@ -123,38 +254,59 @@ export function BouquetCanvas() {
 
 - [ ] **Step 5: Verify no visual change**
 
-Run: `npm run dev`, open `/`, add a few stems (e.g. peonía, tulipán, eucalipto), confirm the bouquet renders identically to before this change (same tilt/spread/jitter feel — this is a pure refactor, `ROTATION_DEG=0` produced `rotation=0` either way so numerically nothing changed).
+Run: `npm run dev`, open `/`, add a few stems (e.g. peonía, tulipán, eucalipto), confirm the bouquet renders identically to before this change — this is a pure refactor, `ROTATION_DEG=0` produced `rotation=0` either way so numerically nothing changed.
 
 - [ ] **Step 6: Commit**
 
 ```bash
 git add lib/vogel.ts lib/vogel.test.ts components/BouquetCanvas.tsx
-git commit -m "refactor: hoist DEFAULT_COMPOSITION out of BouquetCanvas for reuse in export diagram"
+git commit -m "refactor: hoist DEFAULT_COMPOSITION, expose theta on PlacedStem"
 ```
 
 ---
 
-### Task 2: `lib/assembly.ts` — cut lengths, angles, hand order
+### Task 3: `lib/assembly.ts` — cut lengths, angles, hand order
 
 **Files:**
 - Create: `lib/assembly.ts`
 - Create: `lib/assembly.test.ts`
 
 **Interfaces:**
-- Consumes: `PlacedStem` type and `PX_PER_CM` constant from `./vogel` (both already exported).
-- Produces: `BIND_RATIO: number`, `MAX_TILT_DEG: number`, `HANDLE_CM: number`, `AssemblyStep` interface (`{ uid: number; speciesName: string; handOrder: number; angleDeg: number; cutCm: number }`), `buildAssemblyDiagram(placed: PlacedStem[]): AssemblyStep[]` — consumed by Task 7 (`AssemblyDiagram.tsx`).
+- Consumes: `PlacedStem` type (with `.theta`, from Task 2) and `stemPx` from `./vogel` (both exported).
+- Produces: `BIND_RATIO: number`, `MAX_TILT_DEG: number`, `HANDLE_CM: number`, `AssemblyStep` interface (`{ uid: number; speciesName: string; handOrder: number; angleDeg: number; cutCm: number; handleCm: number; leanDeg: number; exceedsMaxTilt: boolean }`), `buildAssemblyDiagram(placed: PlacedStem[]): AssemblyStep[]` — consumed by Task 8 (`AssemblyDiagram.tsx`).
+
+**Why this formula and not the obvious-looking one:** an earlier draft of
+this task used `atan2(y, x)` and `hypot(x, y)` on `PlacedStem`'s `x`/`y`,
+reasoning that `(0,0)` is the tie point in `BouquetCanvas.tsx`'s SVG. That
+reasoning was checked against real `layout()` output and is wrong: `y = r
+· sin(θ) · tilt − stemPx(species) · (1 + jitter term)` conflates the
+spiral silhouette offset with a full stem-length shift, so `hypot(x,y)`
+mostly just re-recovers `stemPx(species)` (i.e., approximately the
+catalog length again, not a "visible portion" to add a handle to), and
+`atan2(y,x)` on that vector collapses toward -90° for nearly every stem
+regardless of its actual spiral position, because the huge `-stemPx` term
+dominates. The corrected version below sources the angle from `theta`
+(the actual spiral azimuth `layout()` computes) and the cut length
+directly from `Species.lengthCm` (the catalog's finished length — no
+canvas-pixel math needed for it at all).
 
 - [ ] **Step 1: Write the failing tests**
 
-Create `lib/assembly.test.ts`:
+Create `lib/assembly.test.ts`. The `fixture()` values below (`r: 20`,
+`theta` = one golden angle) and every expected number were verified by
+actually running `layout()` for a single peonía with
+`{ density: 20, tiltDeg: 0, rotation: 0, jitter: 0, spread: 0 }` — not
+hand-derived:
 
 ```ts
 import { describe, it, expect } from 'vitest'
 import { buildAssemblyDiagram, BIND_RATIO, MAX_TILT_DEG, HANDLE_CM } from './assembly'
 import type { PlacedStem } from './vogel'
+import { GOLDEN } from './vogel'
 import { SPECIES } from './species'
 
-const peonia = SPECIES.find((s) => s.id === 'peonia')!
+const peonia = SPECIES.find((s) => s.id === 'peonia')! // lengthCm: 55
+const ranunculo = SPECIES.find((s) => s.id === 'ranunculo')! // lengthCm: 28
 
 function fixture(overrides: Partial<PlacedStem>): PlacedStem {
   return {
@@ -162,10 +314,11 @@ function fixture(overrides: Partial<PlacedStem>): PlacedStem {
     species: peonia,
     n: 1,
     x: 0,
-    y: -28,
-    r: 28,
+    y: -140,
+    r: 20,
+    theta: GOLDEN,
     depth: -1,
-    sortKey: -28,
+    sortKey: -20,
     scale: 1,
     tone: 0.8,
     ...overrides,
@@ -173,10 +326,18 @@ function fixture(overrides: Partial<PlacedStem>): PlacedStem {
 }
 
 describe('buildAssemblyDiagram', () => {
-  it('computes angle and cut length for a known placed stem', () => {
+  it('computes angleDeg from theta and cutCm/handleCm from the catalog length', () => {
     const [step] = buildAssemblyDiagram([fixture({})])
-    expect(step!.angleDeg).toBeCloseTo(-90, 6)
-    expect(step!.cutCm).toBeCloseTo(18, 6)
+    expect(step!.angleDeg).toBeCloseTo(137.5, 6)
+    expect(step!.cutCm).toBe(55)
+    expect(step!.handleCm).toBeCloseTo(12.1, 6)
+    expect(step!.leanDeg).toBeCloseTo(7.399594659887109, 6)
+    expect(step!.exceedsMaxTilt).toBe(false)
+  })
+
+  it('normalizes negative angles into 0-360', () => {
+    const [step] = buildAssemblyDiagram([fixture({ theta: -Math.PI / 2 })])
+    expect(step!.angleDeg).toBeCloseTo(270, 6)
   })
 
   it('carries hand order from the placement n', () => {
@@ -184,15 +345,22 @@ describe('buildAssemblyDiagram', () => {
     expect(step!.handOrder).toBe(5)
   })
 
-  it('uses the ratio handle when it exceeds the minimum grip length', () => {
-    const [step] = buildAssemblyDiagram([fixture({ y: -140 })])
-    expect(step!.cutCm).toBeCloseTo(61, 6)
-  })
-
   it('carries species name and uid through', () => {
     const [step] = buildAssemblyDiagram([fixture({ uid: 7 })])
     expect(step!.uid).toBe(7)
     expect(step!.speciesName).toBe('Peonía')
+  })
+
+  it('floors the handle length at HANDLE_CM for short stems', () => {
+    const [step] = buildAssemblyDiagram([fixture({ species: ranunculo })])
+    expect(step!.cutCm).toBe(28)
+    expect(step!.handleCm).toBe(8)
+  })
+
+  it('flags exceedsMaxTilt when the lean angle passes MAX_TILT_DEG', () => {
+    const [step] = buildAssemblyDiagram([fixture({ r: 200 })])
+    expect(step!.leanDeg).toBeGreaterThan(MAX_TILT_DEG)
+    expect(step!.exceedsMaxTilt).toBe(true)
   })
 
   it('exposes documented estimate constants as positive numbers', () => {
@@ -212,12 +380,12 @@ Expected: FAIL — `Cannot find module './assembly'`
 
 ```ts
 import type { PlacedStem } from './vogel'
-import { PX_PER_CM } from './vogel'
+import { stemPx } from './vogel'
 
-/** Handle length as a fraction of visible stem length. Estimate, unvalidated — pending florist questionnaire. */
+/** Handle length as a fraction of the stem's total finished length. Estimate, unvalidated — pending florist questionnaire. */
 export const BIND_RATIO = 0.22
 
-/** Informational angle ceiling from the tie point, in degrees. Estimate, unvalidated — pending florist questionnaire. */
+/** Informational lean-angle ceiling from vertical, in degrees. Estimate, unvalidated — pending florist questionnaire. */
 export const MAX_TILT_DEG = 45
 
 /** Minimum hand-grip length below the tie point, in cm. Estimate, unvalidated — pending florist questionnaire. */
@@ -229,13 +397,22 @@ export interface AssemblyStep {
   handOrder: number
   angleDeg: number
   cutCm: number
+  handleCm: number
+  leanDeg: number
+  exceedsMaxTilt: boolean
+}
+
+function normalizeDeg(deg: number): number {
+  const wrapped = deg % 360
+  return wrapped < 0 ? wrapped + 360 : wrapped
 }
 
 export function buildAssemblyDiagram(placed: PlacedStem[]): AssemblyStep[] {
   return placed.map((stem) => {
-    const visibleCm = Math.hypot(stem.x, stem.y) / PX_PER_CM
-    const angleDeg = (Math.atan2(stem.y, stem.x) * 180) / Math.PI
-    const cutCm = visibleCm + Math.max(HANDLE_CM, visibleCm * BIND_RATIO)
+    const angleDeg = normalizeDeg((stem.theta * 180) / Math.PI)
+    const cutCm = stem.species.lengthCm
+    const handleCm = Math.max(HANDLE_CM, cutCm * BIND_RATIO)
+    const leanDeg = (Math.atan2(stem.r, stemPx(stem.species)) * 180) / Math.PI
 
     return {
       uid: stem.uid,
@@ -243,6 +420,9 @@ export function buildAssemblyDiagram(placed: PlacedStem[]): AssemblyStep[] {
       handOrder: stem.n,
       angleDeg,
       cutCm,
+      handleCm,
+      leanDeg,
+      exceedsMaxTilt: leanDeg > MAX_TILT_DEG,
     }
   })
 }
@@ -251,7 +431,7 @@ export function buildAssemblyDiagram(placed: PlacedStem[]): AssemblyStep[] {
 - [ ] **Step 4: Run tests to verify they pass**
 
 Run: `npx vitest run lib/assembly.test.ts`
-Expected: 5 tests PASS
+Expected: 7 tests PASS
 
 - [ ] **Step 5: Commit**
 
@@ -262,7 +442,7 @@ git commit -m "feat: add assembly diagram math - cut lengths, angles, hand order
 
 ---
 
-### Task 3: `lib/shoppingList.ts` — grouping, pricing, seasonal substitution
+### Task 4: `lib/shoppingList.ts` — grouping, pricing, seasonal substitution
 
 **Files:**
 - Create: `lib/shoppingList.ts`
@@ -274,7 +454,7 @@ git commit -m "feat: add assembly diagram math - cut lengths, angles, hand order
 
 - [ ] **Step 1: Write the failing tests**
 
-Create `lib/shoppingList.test.ts`. Fixtures below use real catalog data (verified against `lib/species.ts` directly, not assumed) so every substitution/season assertion reflects the actual 35-species catalog:
+Create `lib/shoppingList.test.ts`. Fixtures below use real catalog data (verified directly against `lib/species.ts`, not assumed) so every substitution/season assertion reflects the actual 35-species catalog:
 
 ```ts
 import { describe, it, expect } from 'vitest'
@@ -431,7 +611,7 @@ git commit -m "feat: add shopping list with seasonal substitution"
 
 ---
 
-### Task 4: `lib/validator.ts` — composition rule checks
+### Task 5: `lib/validator.ts` — composition rule checks
 
 **Files:**
 - Create: `lib/validator.ts`
@@ -439,7 +619,7 @@ git commit -m "feat: add shopping list with seasonal substitution"
 
 **Interfaces:**
 - Consumes: `Stem`, `colorFamily` from `./species` (already exported).
-- Produces: `ValidationLevel = 'ok' | 'warn'`, `ValidationResult` interface (`{ level: ValidationLevel; rule: 'role-balance' | 'season' | 'color-clash'; message: string }`), `validateComposition(stems: Stem[], month?: number): ValidationResult[]` — consumed by Task 6 (`CompositionValidator.tsx`).
+- Produces: `ValidationResult` interface (`{ rule: 'role-balance' | 'season' | 'color-clash'; message: string }` — no `level` field; every result this function produces is a warning by construction, so a constant-valued `level` would be a type that lies), `validateComposition(stems: Stem[], month?: number): ValidationResult[]` — consumed by Task 6 (`CompositionValidator.tsx`).
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -472,7 +652,6 @@ describe('validateComposition', () => {
   it('warns when no focal stem is present', () => {
     const results = validateComposition([{ uid: 1, species: paniculata }], 1)
     expect(results).toContainEqual({
-      level: 'warn',
       rule: 'role-balance',
       message: 'La composición no tiene ninguna flor focal.',
     })
@@ -490,16 +669,13 @@ describe('validateComposition', () => {
       ],
       6
     )
-    expect(results).toEqual([
-      { level: 'warn', rule: 'role-balance', message: 'El rol "filler" representa más del 70% de los tallos.' },
-    ])
+    expect(results).toEqual([{ rule: 'role-balance', message: 'El rol "filler" representa más del 70% de los tallos.' }])
   })
 
   it('warns once, naming all out-of-season stems', () => {
     // peonia (4-8) and girasol (6-10) are both out of season in December
     const results = validateComposition([{ uid: 1, species: peonia }, { uid: 2, species: girasol }], 12)
     expect(results).toContainEqual({
-      level: 'warn',
       rule: 'season',
       message: 'Fuera de temporada: Peonía, Girasol.',
     })
@@ -518,7 +694,6 @@ describe('validateComposition', () => {
       4
     )
     expect(results).toContainEqual({
-      level: 'warn',
       rule: 'color-clash',
       message: 'Más de 4 familias de color distintas — riesgo de sobrecarga visual.',
     })
@@ -550,10 +725,7 @@ Expected: FAIL — `Cannot find module './validator'`
 import type { Stem } from './species'
 import { colorFamily } from './species'
 
-export type ValidationLevel = 'ok' | 'warn'
-
 export interface ValidationResult {
-  level: ValidationLevel
   rule: 'role-balance' | 'season' | 'color-clash'
   message: string
 }
@@ -566,7 +738,6 @@ export function validateComposition(stems: Stem[], month = new Date().getMonth()
   const hasFocal = stems.some((stem) => stem.species.role === 'focal')
   if (!hasFocal) {
     results.push({
-      level: 'warn',
       rule: 'role-balance',
       message: 'La composición no tiene ninguna flor focal.',
     })
@@ -579,7 +750,6 @@ export function validateComposition(stems: Stem[], month = new Date().getMonth()
   for (const [role, count] of roleCounts) {
     if (count / stems.length > 0.7) {
       results.push({
-        level: 'warn',
         rule: 'role-balance',
         message: `El rol "${role}" representa más del 70% de los tallos.`,
       })
@@ -590,7 +760,6 @@ export function validateComposition(stems: Stem[], month = new Date().getMonth()
   if (outOfSeason.length > 0) {
     const names = Array.from(new Set(outOfSeason.map((stem) => stem.species.name)))
     results.push({
-      level: 'warn',
       rule: 'season',
       message: `Fuera de temporada: ${names.join(', ')}.`,
     })
@@ -599,7 +768,6 @@ export function validateComposition(stems: Stem[], month = new Date().getMonth()
   const families = new Set(stems.map((stem) => colorFamily(stem.species)))
   if (families.size > 4) {
     results.push({
-      level: 'warn',
       rule: 'color-clash',
       message: 'Más de 4 familias de color distintas — riesgo de sobrecarga visual.',
     })
@@ -623,14 +791,14 @@ git commit -m "feat: add composition validator - role balance, season, color cla
 
 ---
 
-### Task 5: `components/ShoppingList.tsx`
+### Task 6: `components/ShoppingList.tsx`
 
 **Files:**
 - Create: `components/ShoppingList.tsx`
 
 **Interfaces:**
-- Consumes: `useBouquetStore` from `@/store/bouquet`, `buildShoppingList`/`totalCost` from `@/lib/shoppingList` (Task 3), `Role` type from `@/lib/species`.
-- Produces: `ShoppingList` component — consumed by Task 8 (`ExportView.tsx`).
+- Consumes: `useBouquetStore` from `@/store/bouquet`, `buildShoppingList`/`totalCost` from `@/lib/shoppingList` (Task 4), `Role` type from `@/lib/species`.
+- Produces: `ShoppingList` component — consumed by Task 9 (`ExportView.tsx`).
 
 - [ ] **Step 1: Implement the component**
 
@@ -710,14 +878,14 @@ git commit -m "feat: add ShoppingList component"
 
 ---
 
-### Task 6: `components/CompositionValidator.tsx`
+### Task 7: `components/CompositionValidator.tsx`
 
 **Files:**
 - Create: `components/CompositionValidator.tsx`
 
 **Interfaces:**
-- Consumes: `useBouquetStore` from `@/store/bouquet`, `validateComposition` from `@/lib/validator` (Task 4).
-- Produces: `CompositionValidator` component — consumed by Task 8 (`ExportView.tsx`).
+- Consumes: `useBouquetStore` from `@/store/bouquet`, `validateComposition` from `@/lib/validator` (Task 5).
+- Produces: `CompositionValidator` component — consumed by Task 9 (`ExportView.tsx`).
 
 - [ ] **Step 1: Implement the component**
 
@@ -767,18 +935,18 @@ git commit -m "feat: add CompositionValidator component"
 
 ---
 
-### Task 7: `components/AssemblyDiagram.tsx`
+### Task 8: `components/AssemblyDiagram.tsx`
 
 **Files:**
 - Create: `components/AssemblyDiagram.tsx`
 
 **Interfaces:**
-- Consumes: `useBouquetStore` from `@/store/bouquet`; `layout`, `DEFAULT_COMPOSITION`, `autoDensity` from `@/lib/vogel` (Task 1); `buildAssemblyDiagram` from `@/lib/assembly` (Task 2).
-- Produces: `AssemblyDiagram` component — consumed by Task 8 (`ExportView.tsx`).
+- Consumes: `useBouquetStore` from `@/store/bouquet`; `layout`, `DEFAULT_COMPOSITION`, `autoDensity` from `@/lib/vogel` (Task 2); `buildAssemblyDiagram` from `@/lib/assembly` (Task 3).
+- Produces: `AssemblyDiagram` component — consumed by Task 9 (`ExportView.tsx`).
 
 - [ ] **Step 1: Implement the component**
 
-Create `components/AssemblyDiagram.tsx`:
+Create `components/AssemblyDiagram.tsx`. Stems flagged `exceedsMaxTilt` render their line/label in the warn token color instead of ink, so the diagram visibly surfaces exactly what the florist questionnaire's angle question is meant to validate:
 
 ```tsx
 'use client'
@@ -807,14 +975,15 @@ export function AssemblyDiagram() {
           const y = len * Math.sin(rad)
           const labelX = x * 1.18
           const labelY = y * 1.18
+          const lineColor = step.exceedsMaxTilt ? 'var(--color-warn)' : 'var(--color-ink)'
           return (
             <g key={step.uid}>
-              <line x1="0" y1="0" x2={x} y2={y} stroke="var(--color-ink)" strokeWidth="1" opacity="0.6" />
-              <text x={labelX} y={labelY} textAnchor="middle" className="fill-ink text-[8px] font-mono">
+              <line x1="0" y1="0" x2={x} y2={y} stroke={lineColor} strokeWidth="1" opacity="0.7" />
+              <text x={labelX} y={labelY} textAnchor="middle" className="text-[8px] font-mono" fill={lineColor}>
                 {step.handOrder}
               </text>
               <text x={labelX} y={labelY + 10} textAnchor="middle" className="fill-muted text-[7px] font-mono">
-                {step.cutCm.toFixed(0)}cm
+                {step.cutCm}cm
               </text>
             </g>
           )
@@ -822,8 +991,9 @@ export function AssemblyDiagram() {
       </svg>
       <ol className="text-[11.5px] space-y-0.5">
         {ordered.map((step) => (
-          <li key={step.uid}>
-            {step.handOrder}. {step.speciesName} — corte {step.cutCm.toFixed(1)}cm, ángulo {step.angleDeg.toFixed(0)}°
+          <li key={step.uid} className={step.exceedsMaxTilt ? 'text-warn' : undefined}>
+            {step.handOrder}. {step.speciesName} — corte {step.cutCm}cm, mango {step.handleCm.toFixed(1)}cm, ángulo{' '}
+            {step.angleDeg.toFixed(0)}°
           </li>
         ))}
       </ol>
@@ -846,15 +1016,16 @@ git commit -m "feat: add AssemblyDiagram component"
 
 ---
 
-### Task 8: `/export` route, `ExportView`, and print CSS
+### Task 9: `/export` route, `ExportView`, and print CSS
 
 **Files:**
 - Create: `components/ExportView.tsx`
 - Create: `app/export/page.tsx`
 - Modify: `app/globals.css`
+- Modify: `app/page.tsx`
 
 **Interfaces:**
-- Consumes: `useBouquetStore` from `@/store/bouquet`; `ShoppingList` (Task 5), `CompositionValidator` (Task 6), `AssemblyDiagram` (Task 7); Next.js `Link` from `next/link`.
+- Consumes: `useBouquetStore` from `@/store/bouquet`; `ShoppingList` (Task 6), `CompositionValidator` (Task 7), `AssemblyDiagram` (Task 8); Next.js `Link` from `next/link`.
 - Produces: working `/export` route.
 
 - [ ] **Step 1: Implement `ExportView`**
@@ -952,6 +1123,7 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-canvas text-ink px-6 py-10 md:px-10">
       <h1 className="font-display text-2xl font-semibold mb-6">Monta tu ramo</h1>
+      <div className="grid gap-6 md:grid-cols-[260px_1fr]">
 ```
 
 with:
@@ -970,9 +1142,10 @@ export default function Home() {
           Exportar →
         </Link>
       </div>
+      <div className="grid gap-6 md:grid-cols-[260px_1fr]">
 ```
 
-This is a direct string replacement — the old standalone `<h1>` line is fully absorbed into the new flex row, no duplicate heading results.
+This is a direct string replacement — the old standalone `<h1>` line is fully absorbed into the new flex row (both blocks above end with the same `<div className="grid gap-6 md:grid-cols-[260px_1fr]">` line as trailing context), no duplicate heading results.
 
 - [ ] **Step 5: Type-check and build**
 
@@ -984,8 +1157,9 @@ Expected: no errors, build succeeds
 Run: `npm run dev`. On `/`, confirm the new "Exportar →" link appears without a duplicate heading. With zero stems, navigate to `/export` and confirm the empty state + back-link. Add several stems on `/` (mix of roles, at least one out-of-season species for the current month), click "Exportar →", confirm:
 - Shopping list shows correct counts/prices/total, out-of-season badge + substitute names where applicable
 - Validator shows relevant warnings (or "Sin avisos.")
-- Diagram renders lines from a central tie point with hand-order numbers and cut lengths
+- Diagram renders lines from a central tie point with hand-order numbers and cut lengths; if any stem is flagged `exceedsMaxTilt`, confirm it renders in the warn color
 - "Imprimir" opens the print preview with the back-link/button hidden (`.no-print` working), and the three sections don't split awkwardly across pages — if they do, add `break-before: page` to the offending section's className in `app/globals.css`'s `@media print` block before committing
+- Reload the page mid-session (Task 1's persistence) — confirm stems and the export page both survive
 
 - [ ] **Step 7: Commit**
 
@@ -996,7 +1170,7 @@ git commit -m "feat: wire /export route with print-ready shopping list, validato
 
 ---
 
-### Task 9: Florist questionnaire doc + final verification
+### Task 10: Florist questionnaire doc + final verification
 
 **Files:**
 - Create: `docs/florist-questionnaire.md`
@@ -1018,18 +1192,19 @@ estimaciones de ingeniería sin validar hasta responder esto.
 
 ## Punto de atado y manejo
 
-1. ¿Qué proporción del largo visible del tallo (desde el punto de atado
-   hasta la flor) sueles dejar como "mango" por debajo del atado, en un
-   ramo de mano en espiral? (la app usa 22% del largo visible como
-   estimación, con un mínimo de 8cm)
+1. ¿Qué proporción del largo total del tallo sueles dejar como "mango"
+   por debajo del atado, en un ramo de mano en espiral? (la app usa 22%
+   del largo total como estimación, con un mínimo de 8cm)
 2. ¿8cm es un mínimo razonable de mango para sujetar el ramo con una
    mano, o necesitas más margen?
 
 ## Ángulo e inclinación
 
-3. ¿Hay un ángulo máximo razonable, respecto a la vertical del punto de
-   atado, antes de que un tallo se vea forzado o corra riesgo de
-   partirse? (la app usa 45° como techo informativo, sin bloquear nada)
+3. La app calcula, para cada tallo, un ángulo aproximado de inclinación
+   respecto a la vertical (comparando cuánto se abre hacia fuera en la
+   silueta contra su propio largo) y lo marca si supera 45°. ¿Es 45° un
+   techo razonable antes de que un tallo se vea forzado o corra riesgo de
+   partirse?
 4. ¿Ese ángulo depende del tipo de tallo (leñoso vs. herbáceo) más de lo
    que la app asume con un valor único?
 
@@ -1049,7 +1224,7 @@ estimaciones de ingeniería sin validar hasta responder esto.
 - [ ] **Step 2: Full test suite and build**
 
 Run: `npm test && npx tsc --noEmit && npm run build`
-Expected: all Vitest tests pass (existing + new from Tasks 1-4), no type errors, build succeeds.
+Expected: all Vitest tests pass (existing + new from Tasks 2-5), no type errors, build succeeds.
 
 - [ ] **Step 3: Commit**
 
