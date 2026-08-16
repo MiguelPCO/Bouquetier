@@ -58,10 +58,10 @@ export function FlowerHead({ shape, size: s, color, uid, photo }: FlowerHeadProp
       <image
         href={`/photos/${photo}`}
         x={-s / 2}
-        y={-s * 0.75}
+        y={-s}
         width={s}
         height={s}
-        preserveAspectRatio="xMidYMid meet"
+        preserveAspectRatio="xMidYMax meet"
       />
     )
   }

@@ -22,18 +22,30 @@ node scripts/prepare-photo.mjs <especie-id>
 ```
 
 Recorta el margen transparente (`sharp().trim()`), redimensiona a
-480×480 preservando proporción, con relleno transparente **anclado
-arriba** (`position: 'bottom'`) si hace falta, y escribe en
-`public/photos/<especie-id>.png`.
+480×480 preservando proporción, dejando el contenido **anclado abajo**
+(`position: 'bottom'`, el relleno transparente sobrante queda arriba) si
+hace falta, y escribe en `public/photos/<especie-id>.png`.
 
 Por qué anclado abajo y no centrado: cada foto recorta a un bounding box
 con proporción distinta, así que el relleno necesario para llegar a
 480×480 varía por especie. Si ese relleno se centrara, la base visual de
 la flor caería en una altura distinta dentro del frame para cada
 especie — rompiendo la posibilidad de usar una sola constante de anclaje
-compartida (ver más abajo). Anclando el relleno arriba, la base de
+compartida (ver más abajo). Anclando el contenido abajo, la base de
 cualquier foto procesada queda siempre en la misma posición relativa del
 frame, sin importar su proporción original.
+
+**Riesgo conocido, no probable con fixtures sintéticos**: `sharp().trim()`
+usa un umbral de transparencia para decidir dónde recortar. Fotos reales
+recortadas por un usuario suelen tener bordes con antialiasing/pluma
+(alpha degradado, no un corte binario), y con ese tipo de borde `trim()`
+puede recortar de más o dejar un halo de píxeles semitransparentes. Este
+fallo es imposible de verificar con los fixtures sintéticos usados durante
+la implementación (bordes duros, opacos) — solo se puede comprobar con
+una foto real. Antes de correr el pipeline sobre las 5, procesa una
+primera foto y **inspecciona sus bordes con zoom alto**: un halo o fleco
+visible alrededor de la flor es exactamente el artefacto "collage" que
+esta prueba existe para descartar.
 
 Sin corrección de color/exposición — cada foto es responsabilidad del
 usuario en el momento de captura. Si la prueba revela inconsistencia
@@ -48,13 +60,23 @@ visible entre las 5, queda como hallazgo documentado para el plan de
 mezcla ambos modos para una misma especie.
 
 Ancla: `(0,0)` en `FlowerHead` es el punto de unión del tallo (mismo
-origen que usan las formas SVG existentes). El offset actual,
-`y={-s * 0.75}`, es una **estimación de partida sin ajustar contra
-fotos reales** — se recalibra a ojo una vez existan las 5 fotos de
-prueba, no es un valor derivado matemáticamente como los de
-`lib/assembly.ts` en el Sprint 3. Solo funciona como constante única
-compartida entre las 5 especies gracias al anclaje-abajo del pipeline
-descrito arriba.
+origen que usan las formas SVG existentes). Como el pipeline deja el
+contenido de cada foto anclado abajo y sin relleno transparente en el
+borde inferior, el offset `y={-s}` es un valor **derivado
+geométricamente**, no una estimación a ojo: coloca el borde inferior del
+`<image>` (donde el pipeline garantiza que el contenido queda al ras)
+exactamente en `y=0`, el punto de unión del tallo. Es el mismo tipo de
+derivación matemática que los offsets de `lib/assembly.ts` en el Sprint 3,
+no un valor "cuarto inferior" estimado.
+
+Esto es el punto de partida correcto, no el resultado final: una foto
+real de flor, aunque pase por el pipeline, rara vez queda perfectamente
+al ras en su recorte (pétalos sueltos, sombras, recorte imperfecto), así
+que puede hacer falta un ajuste fino a ojo por especie una vez existan
+las 5 fotos de prueba — ese ajuste sigue siendo una pregunta abierta que
+solo fotos reales pueden responder. Lo que ya no está en duda es la
+derivación: `y={-s}` es la línea base geométrica correcta dado el
+anclaje-abajo del pipeline.
 
 Opacidad: los tallos con foto se renderizan siempre a opacidad 1,
 saltando el efecto de profundidad (`stem.tone`, ~0.72–1.0) que sí se
@@ -68,8 +90,17 @@ esta prueba existe para descartar.
 1. Recibir las 5 fotos (peonía, tulipán, dalia, eucalipto, amarilis) en
    `assets/photos-raw/`.
 2. Ejecutar el pipeline sobre cada una.
-3. Asignar `photo` a esas 5 entradas en `lib/species.ts`.
-4. Ajustar el offset de anclaje a ojo si hace falta.
+3. Asignar `photo` a esas 5 entradas en `lib/species.ts`. Al hacerlo,
+   mantén el `color` de cada especie alineado con el tono real de su
+   foto: `Species.color` no queda como decoración residual del modo
+   vectorial — sigue alimentando `colorFamily()` en `lib/species.ts`,
+   que a su vez usa la regla de choque de color del validador
+   (`lib/validator.ts`) y el swatch del catálogo en
+   `components/SpeciesCatalog.tsx`. Un `color` que no coincide con la
+   foto real puede disparar (o esconder) una advertencia de color-clash
+   que no corresponde a lo que se ve en el ramo.
+4. Ajustar el offset de anclaje a ojo si hace falta (partiendo de
+   `y={-s}`, ver sección anterior).
 5. Montar un ramo de 15 tallos mezclando las 5 especies-foto, enseñar el
    resultado — **la decisión "¿parece foto o collage?" la toma el
    usuario**, no se automatiza.
