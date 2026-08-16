@@ -213,9 +213,11 @@ disclosed constants are new.
   `atan2` on known placed coordinates; `cutCm` golden value for a known
   `(x,y)` + the three constants (guards against silent constant drift,
   same pattern as Sprint 1's golden vogel test).
-- One Playwright smoke test: seed `stems` in the store (via existing
-  E2E seed helpers), navigate to `/export`, assert it renders without
-  crash and shows non-empty shopping list / diagram content.
+- No Playwright in this repo (Vitest only — confirmed via `package.json`).
+  Manual browser verification instead: dev server, add stems on `/`,
+  navigate to `/export`, confirm list/validator/diagram render, confirm
+  `window.print()` opens the print preview with `.no-print` elements
+  hidden. Same verification pattern used at the end of Sprints 1 and 2.
 
 ## Non-goals for this sprint
 
