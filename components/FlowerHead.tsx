@@ -7,6 +7,7 @@ interface FlowerHeadProps {
   size: number
   color: string
   uid: number
+  photo?: string
 }
 
 function petal(length: number, width: number): string {
@@ -51,7 +52,20 @@ function PetalRings({
   )
 }
 
-export function FlowerHead({ shape, size: s, color, uid }: FlowerHeadProps) {
+export function FlowerHead({ shape, size: s, color, uid, photo }: FlowerHeadProps) {
+  if (photo) {
+    return (
+      <image
+        href={`/photos/${photo}`}
+        x={-s / 2}
+        y={-s * 0.75}
+        width={s}
+        height={s}
+        preserveAspectRatio="xMidYMid meet"
+      />
+    )
+  }
+
   const gradId = `fh-${shape}-${uid}`
 
   switch (shape) {

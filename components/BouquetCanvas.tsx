@@ -28,7 +28,7 @@ export function BouquetCanvas() {
         const baseX = stem.x * 0.16
         const baseY = 74 + noise(stem.uid + 41) * 26
         return (
-          <g key={stem.uid} style={{ opacity: stem.tone }}>
+          <g key={stem.uid} style={{ opacity: stem.species.photo ? 1 : stem.tone }}>
             <path
               d={`M 0 0 Q ${stem.x * 0.34} ${stem.y * 0.55} ${stem.x} ${stem.y}`}
               fill="none"
@@ -39,7 +39,7 @@ export function BouquetCanvas() {
             />
             <line x1="0" y1="0" x2={baseX} y2={baseY} stroke="var(--color-accent)" strokeWidth="1.4" strokeLinecap="round" opacity="0.55" />
             <g transform={`translate(${stem.x} ${stem.y}) scale(${stem.scale})`}>
-              <FlowerHead shape={stem.species.shape} size={headPx(stem.species)} color={stem.species.color} uid={stem.uid} />
+              <FlowerHead shape={stem.species.shape} size={headPx(stem.species)} color={stem.species.color} uid={stem.uid} photo={stem.species.photo} />
             </g>
           </g>
         )
