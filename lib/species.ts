@@ -15,6 +15,7 @@ export interface Species {
   season: number[]
   vaseDays: number
   dry: boolean
+  photo?: string
 }
 
 export interface Stem {
