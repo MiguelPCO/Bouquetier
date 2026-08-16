@@ -3,13 +3,8 @@
 
 import { useMemo } from 'react'
 import { useBouquetStore } from '@/store/bouquet'
-import { layout, noise, headPx, autoDensity } from '@/lib/vogel'
+import { layout, noise, headPx, autoDensity, DEFAULT_COMPOSITION } from '@/lib/vogel'
 import { FlowerHead } from './FlowerHead'
-
-const TILT_DEG = 62
-const ROTATION_DEG = 0
-const JITTER = 0.5
-const SPREAD = 0.55
 
 export function BouquetCanvas() {
   const stems = useBouquetStore((state) => state.stems)
@@ -17,7 +12,7 @@ export function BouquetCanvas() {
   const density = useMemo(() => autoDensity(stems), [stems])
 
   const placed = useMemo(
-    () => layout(stems, { density, tiltDeg: TILT_DEG, rotation: (ROTATION_DEG * Math.PI) / 180, jitter: JITTER, spread: SPREAD }),
+    () => layout(stems, { ...DEFAULT_COMPOSITION, density }),
     [stems, density]
   )
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { layout } from './vogel'
+import { layout, DEFAULT_COMPOSITION, GOLDEN } from './vogel'
 import { SPECIES } from './species'
 
 const peony = SPECIES.find((s) => s.id === 'peonia')!
@@ -46,5 +46,21 @@ describe('layout', () => {
     const [placed] = layout(stems, { density: 20, tiltDeg: 0, rotation: 0, jitter: 0, spread: 0 })
 
     expect(placed!.x).toBeCloseTo(-14.7455467362, 6)
+  })
+
+  it('exposes a DEFAULT_COMPOSITION matching the canvas defaults', () => {
+    expect(DEFAULT_COMPOSITION).toEqual({
+      tiltDeg: 62,
+      rotation: 0,
+      jitter: 0.5,
+      spread: 0.55,
+    })
+  })
+
+  it('returns the spiral angle theta for each placed stem', () => {
+    const stems = [{ uid: 1, species: peony }]
+    const [placed] = layout(stems, { density: 20, tiltDeg: 0, rotation: 0, jitter: 0, spread: 0 })
+
+    expect(placed!.theta).toBeCloseTo(GOLDEN, 10)
   })
 })

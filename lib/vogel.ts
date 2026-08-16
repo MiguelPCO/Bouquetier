@@ -39,11 +39,19 @@ export interface Composition {
   spread: number
 }
 
+export const DEFAULT_COMPOSITION: Omit<Composition, 'density'> = {
+  tiltDeg: 62,
+  rotation: 0,
+  jitter: 0.5,
+  spread: 0.55,
+}
+
 export interface PlacedStem extends Stem {
   n: number
   x: number
   y: number
   r: number
+  theta: number
   depth: number
   sortKey: number
   scale: number
@@ -78,6 +86,7 @@ export function layout(stems: Stem[], { density, tiltDeg, rotation, jitter, spre
       x,
       y,
       r,
+      theta,
       depth: sin,
       sortKey: r * sin,
       scale: 1 + sin * 0.16,
