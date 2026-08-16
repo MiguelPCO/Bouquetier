@@ -48,18 +48,43 @@ lib/assembly.ts              pure functions + BIND_RATIO/MAX_TILT constants
 docs/florist-questionnaire.md
 ```
 
-No backend, no new dependencies. Everything client-side, same as the rest
-of the app (Zustand store, in-memory, no persistence layer).
+No backend, no new dependencies.
 
-### Existing-code fix riding along
+### Existing-code fixes riding along
 
-`BouquetCanvas.tsx` currently hardcodes `TILT_DEG = 62`, `ROTATION_DEG = 0`,
-`JITTER = 0.5`, `SPREAD = 0.55` inline. The export page's assembly diagram
-must reflect the *same* placement the canvas shows, or the printed diagram
-won't match what the user built. Hoist these four into an exported
-`DEFAULT_COMPOSITION: Composition` constant in `lib/vogel.ts`; both
-`BouquetCanvas.tsx` and the new export page import it. This is a targeted
-fix serving this sprint directly, not a drive-by refactor.
+**Hoist composition defaults.** `BouquetCanvas.tsx` currently hardcodes
+`TILT_DEG = 62`, `ROTATION_DEG = 0`, `JITTER = 0.5`, `SPREAD = 0.55`
+inline. The export page's assembly diagram must reflect the *same*
+placement the canvas shows, or the printed diagram won't match what the
+user built. Hoist these four into an exported
+`DEFAULT_COMPOSITION: Omit<Composition, 'density'>` constant in
+`lib/vogel.ts`; both `BouquetCanvas.tsx` and the new export page import
+it.
+
+**Expose the spiral angle.** `layout()` computes `theta` internally
+(`n * GOLDEN + rotation + jitter term`) but never returns it — `PlacedStem`
+only exposes the derived `x`, `y`, `depth = sin(theta)`. The assembly
+diagram needs the actual azimuth, not a value re-derived from `x`/`y`
+(see Module: `lib/assembly.ts` below for why that reconstruction is
+unsound). Add `theta: number` (radians) to `PlacedStem` and return it
+from `layout()`. This is an additive field — existing consumers
+(`BouquetCanvas.tsx`, all current tests) are unaffected.
+
+**Persist the store.** The store is in-memory only (`store/bouquet.ts`),
+which is fine for the composer page but breaks the export page's actual
+use case: a printed/print-previewed page used standing in a shop, where a
+mobile browser reload or tab eviction would hit `/export` with an empty
+store and show "no hay tallos." Wrap the store in Zustand's `persist`
+middleware (ships with `zustand`, already a dependency — no new package)
+against `localStorage`, keyed `'tallo-bouquet'`. Persisted `Stem` objects
+lose reference identity to the canonical `SPECIES` array after a
+localStorage round-trip (plain deep clones), but nothing in the codebase
+relies on that identity — every lookup compares by `species.id`, not
+object reference — so this is safe. Standard caveat: the client will
+render an empty store on first paint until `persist` rehydrates
+client-side after mount (brief flash, not a hydration-mismatch error,
+since the server-rendered and pre-rehydration client-rendered output are
+identical — both start from the same empty default state).
 
 ## Data flow
 
@@ -113,16 +138,18 @@ badge, no forced fallback).
 ## Module: `lib/validator.ts`
 
 ```ts
-export type ValidationLevel = 'ok' | 'warn'
-
 export interface ValidationResult {
-  level: ValidationLevel
   rule: 'role-balance' | 'season' | 'color-clash'
   message: string
 }
 
 export function validateComposition(stems: Stem[], month?: number): ValidationResult[]
 ```
+
+No `level` field — every `ValidationResult` this function can produce is
+a warning by construction (rules only ever push on firing), so a
+`level: 'warn'` that never varies is a union type that lies. The "all
+clear" state is the empty array, not a `level: 'ok'` entry.
 
 Returns one entry **per rule that fires** (warnings only) — an empty array
 means all clear, and the component renders a single "sin avisos" state for
@@ -143,33 +170,76 @@ shared state between the two modules.
 ## Module: `lib/assembly.ts`
 
 ```ts
-export const BIND_RATIO = 0.22   // estimate: handle length as fraction of visible stem length, unvalidated
-export const MAX_TILT_DEG = 45   // estimate: informational angle ceiling, unvalidated
-export const HANDLE_CM = 8       // estimate: minimum hand-grip length below tie point, unvalidated
+export const BIND_RATIO = 0.22   // estimate: handle length as fraction of the stem's total finished length, unvalidated
+export const MAX_TILT_DEG = 45   // estimate: informational lean-angle ceiling from vertical, unvalidated
+export const HANDLE_CM = 8       // estimate: minimum hand-grip length below the tie point, unvalidated
 
 export interface AssemblyStep {
   uid: number
   speciesName: string
-  handOrder: number   // = PlacedStem.n, already computed by layout()
-  angleDeg: number     // atan2(y, x) at the tie point, converted from radians
-  cutCm: number        // visible length (origin→head, px→cm) + max(HANDLE_CM, visible * BIND_RATIO)
+  handOrder: number      // = PlacedStem.n, already computed by layout()
+  angleDeg: number       // spiral insertion azimuth, 0-360, from PlacedStem.theta
+  cutCm: number          // finished stem length — Species.lengthCm, from the catalog
+  handleCm: number       // handle length below the tie point
+  leanDeg: number        // approximate outward lean from vertical
+  exceedsMaxTilt: boolean
 }
 
 export function buildAssemblyDiagram(placed: PlacedStem[]): AssemblyStep[]
 ```
 
-Key insight reused from `lib/vogel.ts`: `layout()` already places every
-stem's flower head at `(x, y)` **relative to the hand/tie point at the
-canvas origin** — the bezier stem path in `BouquetCanvas.tsx` already
-draws `M 0 0 Q ... x y`, confirming `(0,0)` *is* the tie point in this
-coordinate system. So `angleDeg` needs no new geometry, just
-`atan2(y, x)` on the existing placed coordinates. `handOrder` is already
-`placed[i].n` — the spiral insertion order `layout()` computes. Only
-`cutCm` (physical stem length to cut, in real-world cm) and the two
-disclosed constants are new.
+**This section was revised after the first draft below turned out to be
+geometrically wrong — kept here because the reasoning matters for anyone
+touching this module later.**
 
-`cutCm` formula: `visibleCm = Math.hypot(x, y) / PX_PER_CM`, then
-`cutCm = visibleCm + Math.max(HANDLE_CM, visibleCm * BIND_RATIO)`.
+The first draft assumed `(0,0)` is the tie point and that `hypot(x, y)`
+therefore gives the stem's visible length, with `atan2(y, x)` giving its
+angle. Checked against real `layout()` output (peonía, `lengthCm: 55`):
+`hypot(x,y)/PX_PER_CM ≈ 62cm` and `atan2(y,x) ≈ -90°` for nearly every
+stem. Both are wrong, and for the same reason: `y = r·sin(θ)·tilt −
+stemLenPx·(1 + jitter)` conflates the spiral silhouette offset with a
+full-stem-length vertical shift, so `hypot(x,y)` mostly just recovers
+`stemLenPx` (i.e., ≈ the catalog length again, not a "visible portion" of
+it) plus noise, and `atan2` on that vector is dominated by the huge
+negative `y` term rather than the spiral rotation — every stem's angle
+collapses toward -90° regardless of where it actually sits in the spiral.
+The old formula would have told a florist to cut a 55cm stem to 62cm.
+
+Corrected model, in two independently-sourced pieces:
+
+- **`angleDeg`** (spiral insertion azimuth — "which direction around the
+  bunch does this stem go in"): this is exactly `theta`, which `layout()`
+  already computes per stem as `n·GOLDEN + rotation + jitter term` — the
+  golden-angle spiral rotation is the real hand-tying quantity (rotate the
+  bunch ~137.5° between each insertion). Normalize
+  `(theta * 180 / Math.PI) % 360` into `[0, 360)`.
+- **`cutCm` / `handleCm`** (how long to cut the stem, and where the tie
+  band falls on it): sourced directly from the catalog, not derived from
+  canvas pixels. `cutCm = species.lengthCm` — the catalog's finished
+  length is already the number a florist needs. `handleCm =
+  Math.max(HANDLE_CM, cutCm * BIND_RATIO)` — the hand-grip portion below
+  the tie point, floored at `HANDLE_CM` for short stems where the ratio
+  alone would be ungrippable (e.g. ranúnculo, `lengthCm: 28` →
+  `28 * 0.22 = 6.16cm`, floored to `8cm`).
+- **`leanDeg` / `exceedsMaxTilt`** (this is what `MAX_TILT_DEG` actually
+  gates — the first draft defined the constant and never used it):
+  `leanDeg = atan2(stem.r, stemPx(stem.species)) * 180 / Math.PI` — the
+  silhouette radius `r` (how far out this stem's head sits from center)
+  against its own physical length (`stemPx`), giving a monotonic,
+  physically-motivated approximation of how far outward the stem must
+  lean to reach its assigned position: farther-out placements or shorter
+  stems relative to their reach lean more. `exceedsMaxTilt = leanDeg >
+  MAX_TILT_DEG`, surfaced in the diagram as a flagged stem — this is the
+  concrete question the florist questionnaire's angle question is
+  actually validating.
+- **`handOrder`** is unchanged from the first draft — `placed[i].n`, the
+  spiral insertion order `layout()` already computes.
+
+Golden values (verified by running `layout()` for a single peonía,
+`{ density: 20, tiltDeg: 0, rotation: 0, jitter: 0, spread: 0 }`, `n=1`):
+`r = 20`, `theta = 2.399827721492203` rad, `angleDeg = 137.5`,
+`stemPx(peonia) = 154`, `cutCm = 55`, `handleCm = 12.1`,
+`leanDeg = 7.399594659887109`, `exceedsMaxTilt = false`.
 
 ## Components
 
@@ -184,8 +254,10 @@ disclosed constants are new.
   colors). "Sin avisos." when array is empty.
 - **`AssemblyDiagram`** — SVG, tie point at center (reuses viewBox
   conventions from `BouquetCanvas.tsx`), one radial line per `AssemblyStep`
-  at `angleDeg`, labeled with `handOrder` and `cutCm`. Print-legible: labels
-  outside the line endpoints, high-contrast ink-on-cream (existing tokens).
+  at `angleDeg`, labeled with `handOrder` and `cutCm`; an ordered list below
+  restates each step as `handOrder. name — corte cutCm cm, ángulo angleDeg°`.
+  Print-legible: labels outside the line endpoints, high-contrast
+  ink-on-cream (existing tokens).
 - **`ExportView`** — composes the three above, "Imprimir" button
   (`onClick={() => window.print()}`), back-link to `/`, empty state when
   `stems.length === 0`.
@@ -209,10 +281,13 @@ disclosed constants are new.
 - `lib/validator.test.ts` — each rule fires/doesn't fire at its threshold
   boundary (70% role split, >4 color families, in/out of season), empty
   stems → empty warnings.
-- `lib/assembly.test.ts` — `handOrder` matches input `n`; `angleDeg` matches
-  `atan2` on known placed coordinates; `cutCm` golden value for a known
-  `(x,y)` + the three constants (guards against silent constant drift,
-  same pattern as Sprint 1's golden vogel test).
+- `lib/assembly.test.ts` — `handOrder` matches input `n`; golden values for
+  `angleDeg`/`cutCm`/`handleCm`/`leanDeg` against the verified `layout()`
+  output above (guards against silent constant or formula drift, same
+  pattern as Sprint 1's golden vogel test); `handleCm` floor kicks in for
+  short stems; `exceedsMaxTilt` fires past `MAX_TILT_DEG`.
+- `lib/vogel.test.ts` — new test asserting `DEFAULT_COMPOSITION`'s shape,
+  and that `layout()` returns the correct `theta` for a known stem.
 - No Playwright in this repo (Vitest only — confirmed via `package.json`).
   Manual browser verification instead: dev server, add stems on `/`,
   navigate to `/export`, confirm list/validator/diagram render, confirm
@@ -222,8 +297,9 @@ disclosed constants are new.
 ## Non-goals for this sprint
 
 - No PDF library — browser print only, per approved decision.
-- No persistence of the export page's own state — it's a pure read of
-  the existing store.
+- No export-page-specific state — the export page is a pure read of the
+  (now persisted) store; persistence lives in `store/bouquet.ts` and
+  applies to the whole app, not something the export page owns.
 - No physical florist validation — deferred, disclosed above.
 - No budget/price editing on the export page — shopping list is
   read-only, sourced from `Species.wholesale`.
