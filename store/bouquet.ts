@@ -1,12 +1,27 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { Species, Stem } from '@/lib/species'
+import { SPECIES, type Species, type Stem } from '@/lib/species'
 
 interface BouquetState {
   stems: Stem[]
   nextUid: number
   add: (species: Species) => void
   remove: (speciesId: string) => void
+}
+
+function resolveStems(rawStems: unknown): Stem[] {
+  if (!Array.isArray(rawStems)) return []
+  const resolved: Stem[] = []
+  for (const raw of rawStems) {
+    if (!raw || typeof raw !== 'object' || !('uid' in raw) || !('species' in raw)) continue
+    const rawSpecies = (raw as { species: unknown }).species
+    const speciesId = rawSpecies && typeof rawSpecies === 'object' && 'id' in rawSpecies ? (rawSpecies as { id: unknown }).id : undefined
+    if (typeof speciesId !== 'string') continue
+    const species = SPECIES.find((s) => s.id === speciesId)
+    if (!species) continue
+    resolved.push({ uid: (raw as { uid: number }).uid, species })
+  }
+  return resolved
 }
 
 export const useBouquetStore = create<BouquetState>()(
@@ -27,6 +42,15 @@ export const useBouquetStore = create<BouquetState>()(
           return { stems: state.stems.filter((_, i) => i !== realIdx) }
         }),
     }),
-    { name: 'tallo-bouquet' }
+    {
+      name: 'tallo-bouquet',
+      version: 1,
+      merge: (persisted, current) => {
+        const raw = persisted as { stems?: unknown; nextUid?: unknown } | undefined
+        const stems = resolveStems(raw?.stems)
+        const nextUid = typeof raw?.nextUid === 'number' ? raw.nextUid : current.nextUid
+        return { ...current, stems, nextUid }
+      },
+    }
   )
 )
