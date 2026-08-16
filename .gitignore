@@ -36,6 +36,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# photo pipeline intake (raw user-delivered photos, not committed)
+/assets/photos-raw/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
