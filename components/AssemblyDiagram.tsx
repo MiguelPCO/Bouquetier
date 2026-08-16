@@ -41,6 +41,7 @@ export function AssemblyDiagram() {
       <ol className="text-[11.5px] space-y-0.5">
         {ordered.map((step) => (
           <li key={step.uid} className={step.exceedsMaxTilt ? 'text-warn' : undefined}>
+            {step.exceedsMaxTilt ? '⚠ ' : ''}
             {step.handOrder}. {step.speciesName} — corte {step.cutCm}cm, mango {step.handleCm.toFixed(1)}cm, ángulo{' '}
             {step.angleDeg.toFixed(0)}°
           </li>

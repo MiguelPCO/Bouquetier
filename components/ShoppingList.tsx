@@ -29,6 +29,14 @@ export function ShoppingList() {
           <div key={role}>
             <h3 className="text-[11px] font-medium text-muted mb-1">{ROLE_LABEL[role]}</h3>
             <table className="w-full text-[12.5px]">
+              <thead>
+                <tr className="text-[10.5px] text-muted text-left">
+                  <th className="py-1 font-normal">Especie</th>
+                  <th className="py-1 font-normal text-center w-10">Uds.</th>
+                  <th className="py-1 font-normal text-right w-16">Precio</th>
+                  <th className="py-1 font-normal text-right w-16">Subtotal</th>
+                </tr>
+              </thead>
               <tbody>
                 {roleLines.map((line) => (
                   <tr key={line.speciesId} className="border-b border-line align-top">
@@ -37,7 +45,8 @@ export function ShoppingList() {
                       {!line.inSeason && <span className="ml-1.5 text-[10px] text-warn">fuera de temporada</span>}
                       {!line.inSeason && line.substitutes.length > 0 && (
                         <div className="text-[10.5px] text-muted italic">
-                          Sustituto: {line.substitutes.map((s) => s.name).join(', ')}
+                          {line.substitutes.length > 1 ? 'Sustitutos' : 'Sustituto'}:{' '}
+                          {line.substitutes.map((s) => s.name).join(', ')}
                         </div>
                       )}
                     </td>
@@ -51,7 +60,11 @@ export function ShoppingList() {
           </div>
         )
       })}
-      <p className="text-right font-medium text-[13px]">Total: {total.toFixed(2)}€</p>
+      {lines.length === 0 ? (
+        <p className="text-[12.5px] text-muted italic">No hay tallos en la lista.</p>
+      ) : (
+        <p className="text-right font-medium text-[13px]">Total: {total.toFixed(2)}€</p>
+      )}
     </section>
   )
 }

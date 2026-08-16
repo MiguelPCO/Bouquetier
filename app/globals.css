@@ -15,3 +15,13 @@ body {
   background: var(--color-canvas);
   color: var(--color-ink);
 }
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  section {
+    break-inside: avoid;
+  }
+}
