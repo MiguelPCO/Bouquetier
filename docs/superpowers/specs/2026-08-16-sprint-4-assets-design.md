@@ -68,10 +68,14 @@ docs/photo-pipeline.md        new — documents the normalization pipeline (the 
 ```
 
 New dependency: `sharp` (image resizing/cropping, no ML/segmentation
-needed since input is already transparent-cut). Common, lightweight,
-no native-binding surprises on this stack (Next.js already vendors
-`sharp` transitively for `next/image` optimization in production, so
-this isn't introducing an unfamiliar toolchain — see Testing section).
+needed since input is already transparent-cut). It's an authoring-time
+tool only (runs via a manually-invoked script, never imported by the app
+itself), so it belongs in `devDependencies`, not `dependencies` — it
+should never ship to the deployed app. (Earlier draft of this spec
+claimed Next.js already vendors `sharp` for image optimization; checked
+against this repo's actual `package.json` and this project's build has
+passed all session without it — that claim was wrong and is corrected
+here rather than repeated.)
 
 ## Module: `scripts/prepare-photo.mjs`
 
@@ -85,11 +89,29 @@ Steps:
 2. Trim fully-transparent padding to a tight bounding box around the
    visible content (`sharp().trim()`).
 3. Resize to a standard square canvas (480×480), preserving aspect ratio,
-   padding with transparency if the trimmed content isn't square
-   (`sharp().resize(480, 480, { fit: 'contain', background: { r:0,g:0,b:0,alpha:0 } })`).
+   padding with transparency if the trimmed content isn't square —
+   **bottom-anchored**, not centered:
+   `sharp().resize(480, 480, { fit: 'contain', position: 'bottom', background: { r:0,g:0,b:0,alpha:0 } })`.
 4. Write to `public/photos/<species-id>.png`.
 5. Print the output path and final dimensions to stdout for a quick
    sanity check.
+
+**Why bottom-anchored, not centered**: each source photo's trimmed
+bounding box has a different aspect ratio (a tall species like amarilis
+trims closer to square than a wide one like dalia), so `fit: 'contain'`
+must add padding somewhere to reach 480×480. Centering that padding
+means the flower's visual base sits at a different height inside the
+frame for every species — which breaks the single shared anchor constant
+`FlowerHead.tsx` needs (see below): there would be no one `y` offset that
+correctly places every photo's base at the stem-attachment point,
+because each photo pads differently. Anchoring all padding to the top
+(content flush to the bottom edge) makes every processed photo's base
+land at the same relative position in its 480×480 frame regardless of
+its original aspect ratio, which is what makes one shared offset valid.
+This needs verifying once `sharp` is actually installed (Task 1's
+synthetic test fixture should be asymmetric enough — a non-square source
+— to prove `position: 'bottom'` is doing what's expected, not just that
+the resize runs).
 
 No color/exposure correction in this pass — the 5 photos are all
 user-sourced under the user's own control, so cross-photo consistency is
@@ -149,9 +171,12 @@ export function FlowerHead({ shape, size: s, color, uid, photo }: FlowerHeadProp
 
 **Anchor offset (`y={-s * 0.75}`) is a starting estimate, not a derived
 value** — unlike Sprint 3's assembly-diagram formulas, there's no way to
-compute the "correct" offset from first principles here, because it
-depends on where each real photo's visual mass sits relative to its
-frame, which varies per photo. `0,0` is the stem-attachment point
+compute the "correct" offset from first principles here. It's only
+usable as *one shared* constant across all 5 species because the
+pipeline's bottom-anchored padding (above) makes every processed photo's
+base land at the same relative frame position — without that, each
+photo would need its own offset, which this plan doesn't have a field
+for and isn't building. `0,0` is the stem-attachment point
 (confirmed by reading `BouquetCanvas.tsx`: the stem's bezier path ends at
 `(stem.x, stem.y)`, and `<FlowerHead>` renders inside a `<g
 transform="translate(stem.x stem.y) scale(...)">`, so local `(0,0)` in
@@ -168,8 +193,28 @@ the user).
 
 ## Module: `components/BouquetCanvas.tsx`
 
-One-line change: pass `photo={stem.species.photo}` into the existing
-`<FlowerHead>` call alongside `shape`/`size`/`color`/`uid`.
+Two changes, not one:
+
+1. Pass `photo={stem.species.photo}` into the existing `<FlowerHead>`
+   call alongside `shape`/`size`/`color`/`uid`.
+2. **Photo stems must not get the depth-tone opacity applied.** The
+   canvas currently wraps every stem in
+   `<g style={{ opacity: stem.tone }}>` where `tone = 0.72 + (sin + 1) *
+   0.14` (roughly 0.72–1.0) — this is a legitimate depth cue on flat
+   vector petals with gradient fills, but on a photograph it reads as
+   washed-out, and semi-transparent overlapping photos is close to a
+   textbook description of the "collage" look this trial exists to rule
+   out. This is the single highest-stakes correctness issue in this
+   plan: per SPRINTS.md, a failed trial means "se vuelve a SVG ilustrado
+   y se cierra el tema" — a one-way decision. If the trial fails because
+   an opacity trick built for vector art was left applied to
+   photographs, that would retire photography for the wrong reason, and
+   the topic doesn't reopen. Fix: skip the tone opacity for stems with
+   `photo` set —
+   `style={{ opacity: stem.species.photo ? 1 : stem.tone }}` — so photo
+   stems always render fully opaque. Record this choice in
+   `docs/photo-pipeline.md` so whoever judges the trial's 15-stem
+   bouquet knows what they're looking at.
 
 ## `docs/photo-pipeline.md`
 
@@ -190,10 +235,16 @@ fields, this doc records why, topic closes per SPRINTS.md's own rule).
   compounded by the fact that "does the photo look right" has no
   assertion-shaped answer. Verification is: `prepare-photo.mjs` runs
   without error and produces a 480×480 PNG (checkable by running it once
-  against a placeholder transparent PNG during implementation, before
-  real photos exist); `npx tsc --noEmit` passes; manual browser
-  check that a photo-mode stem renders without crashing (using the same
-  placeholder).
+  against a synthetic placeholder during implementation, before real
+  photos exist); `npx tsc --noEmit` passes; manual browser check that a
+  photo-mode stem renders without crashing (using the same placeholder).
+  **This verification is weaker than it looks**: a synthetic hard-edged
+  opaque shape is the one input `sharp().trim()` is guaranteed to handle
+  well. Real user-cut PNGs have feathered/antialiased alpha edges, where
+  `trim()`'s default threshold can halo or over-crop — that failure mode
+  is genuinely untestable until photo #1 arrives, and the plan should
+  say so rather than imply the synthetic test proves real-photo
+  readiness.
 - The actual trial (5 real photos → 15-stem bouquet → user judgment) is
   explicitly NOT automatable and is the plan's final, human-gated step.
 
