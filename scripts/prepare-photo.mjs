@@ -17,12 +17,33 @@ const inputPath = path.join(root, 'assets', 'photos-raw', `${speciesId}.png`)
 const outputDir = path.join(root, 'public', 'photos')
 const outputPath = path.join(outputDir, `${speciesId}.png`)
 
-const { data, info } = await sharp(inputPath).trim().png().toBuffer({ resolveWithObject: true })
+const meta = await sharp(inputPath).metadata()
+if (!meta.hasAlpha) {
+  console.error(
+    `Error: ${inputPath} has no alpha channel — expected a transparent-background PNG ` +
+    `per docs/photo-pipeline.md's delivery convention. An opaque background would pass ` +
+    `through untrimmed and unflagged.`
+  )
+  process.exit(1)
+}
 
 await mkdir(outputDir, { recursive: true })
-await sharp(data)
-  .resize(480, 480, { fit: 'contain', position: 'bottom', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+const info = await sharp(inputPath)
+  .trim()
+  .resize(480, 480, {
+    fit: 'contain',
+    position: 'bottom',
+    withoutEnlargement: true,
+    background: { r: 0, g: 0, b: 0, alpha: 0 },
+  })
   .png()
   .toFile(outputPath)
 
-console.log(`Wrote ${outputPath} (trimmed source was ${info.width}x${info.height}, output is 480x480)`)
+if (info.width < 480 || info.height < 480) {
+  console.warn(
+    `Warning: trimmed source was smaller than 480x480 — kept at native resolution ` +
+    `(padded, not upscaled) to avoid blur.`
+  )
+}
+
+console.log(`Wrote ${outputPath} (${info.width}x${info.height})`)

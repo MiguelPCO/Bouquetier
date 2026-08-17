@@ -1,4 +1,5 @@
 // components/FlowerHead.tsx
+import { useState } from 'react'
 import { noise } from '@/lib/vogel'
 import type { Shape } from '@/lib/species'
 
@@ -7,8 +8,14 @@ interface FlowerHeadProps {
   size: number
   color: string
   uid: number
-  photo?: string
+  id: string
+  photo?: boolean
 }
+
+/** Shapes whose vector rendering draws base-up from the origin (stem meets the flower's
+ *  bottom edge). Every other shape draws radially centered on the origin (stem meets the
+ *  flower's visual center) — see docs/photo-pipeline.md's "Ancla" section. */
+const BASE_ANCHORED_SHAPES = new Set<Shape>(['tulip'])
 
 function petal(length: number, width: number): string {
   const hw = width / 2
@@ -52,16 +59,20 @@ function PetalRings({
   )
 }
 
-export function FlowerHead({ shape, size: s, color, uid, photo }: FlowerHeadProps) {
-  if (photo) {
+export function FlowerHead({ shape, size: s, color, uid, id, photo }: FlowerHeadProps) {
+  const [imgFailed, setImgFailed] = useState(false)
+
+  if (photo && !imgFailed) {
+    const baseAnchored = BASE_ANCHORED_SHAPES.has(shape)
     return (
       <image
-        href={`/photos/${photo}`}
+        href={`/photos/${id}.png`}
         x={-s / 2}
-        y={-s}
+        y={baseAnchored ? -s : -s / 2}
         width={s}
         height={s}
-        preserveAspectRatio="xMidYMax meet"
+        preserveAspectRatio={baseAnchored ? 'xMidYMax meet' : 'xMidYMid meet'}
+        onError={() => setImgFailed(true)}
       />
     )
   }

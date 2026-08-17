@@ -21,10 +21,19 @@ id de la especie (`peonia.png`, `tulipan.png`, `dalia.png`,
 node scripts/prepare-photo.mjs <especie-id>
 ```
 
+Antes de procesar, valida que la foto tenga canal alpha
+(`sharp().metadata().hasAlpha`) — si no lo tiene, aborta con error en vez
+de recortar sobre un fondo opaco sin avisar.
+
 Recorta el margen transparente (`sharp().trim()`), redimensiona a
 480×480 preservando proporción, dejando el contenido **anclado abajo**
 (`position: 'bottom'`, el relleno transparente sobrante queda arriba) si
-hace falta, y escribe en `public/photos/<especie-id>.png`.
+hace falta, sin agrandar fotos ya más chicas que 480×480
+(`withoutEnlargement: true` — evita difuminar por upscale, solo rellena
+más), y escribe en `public/photos/<especie-id>.png`. El nombre del
+archivo de salida es siempre `<especie-id>.png` — el render nunca lee un
+nombre de archivo suelto, lo deriva de `Species.id` (ver más abajo), así
+que no hay forma de que id y nombre de archivo diverjan.
 
 Por qué anclado abajo y no centrado: cada foto recorta a un bounding box
 con proporción distinta, así que el relleno necesario para llegar a
@@ -54,53 +63,74 @@ visible entre las 5, queda como hallazgo documentado para el plan de
 
 ## Integración en el render
 
-`Species.photo` (opcional) apunta al nombre de archivo bajo
-`public/photos/`. Cuando está presente, `FlowerHead.tsx` renderiza un
-`<image>` en vez de la forma paramétrica — sustitución completa, no
-mezcla ambos modos para una misma especie.
+`Species.photo` (opcional, boolean) marca que existe
+`public/photos/<id>.png`. Cuando está en `true`, `FlowerHead.tsx`
+renderiza un `<image>` en vez de la forma paramétrica — sustitución
+completa, no mezcla ambos modos para una misma especie. El nombre de
+archivo se deriva siempre de `Species.id` (`/photos/${id}.png`), nunca de
+un string suelto — elimina cualquier posibilidad de que id y archivo
+diverjan por error de tipeo. Si la imagen falla al cargar (404, ruta mal
+generada), `FlowerHead` cae automáticamente a la forma paramétrica
+(`onError` en el `<image>` cambia estado local `imgFailed`) en vez de
+dejar el tallo sin flor.
 
-Ancla: `(0,0)` en `FlowerHead` es el punto de unión del tallo (mismo
-origen que usan las formas SVG existentes). Como el pipeline deja el
-contenido de cada foto anclado abajo y sin relleno transparente en el
-borde inferior, el offset `y={-s}` es un valor **derivado
-geométricamente**, no una estimación a ojo: coloca el borde inferior del
-`<image>` (donde el pipeline garantiza que el contenido queda al ras)
-exactamente en `y=0`, el punto de unión del tallo. Es el mismo tipo de
-derivación matemática que los offsets de `lib/assembly.ts` en el Sprint 3,
-no un valor "cuarto inferior" estimado.
+Ancla — **depende de la forma**, no es un único offset compartido:
+`(0,0)` en `FlowerHead` es el punto de unión del tallo (mismo origen que
+usan las formas SVG existentes), pero esas formas no comparten un mismo
+tipo de dibujo. `tulip` es la única forma que dibuja de abajo hacia
+arriba desde el origen (el tallo entra por la base de la flor) — para
+esa forma el offset correcto es `y={-s}` (borde inferior del `<image>`
+al ras del origen). El resto de formas (`peony`, `dahlia`, `ranun`,
+`umbel`, `spray`, `leaf`, `spike`) dibujan pétalos/frondas centrados
+alrededor del origen en todas direcciones — visualmente el tallo entra
+por el *centro* de la flor, no por su base — así que esas formas usan
+`y={-s / 2}` (imagen centrada en el origen). `FlowerHead.tsx` mantiene
+esta distinción en `BASE_ANCHORED_SHAPES` (hoy solo `tulip`; de las 5
+especies de prueba, `tulipan` es la única que cae ahí — `peonia`,
+`dalia`, `amarilis`, `eucalipto` usan el anclaje centrado).
 
-Esto es el punto de partida correcto, no el resultado final: una foto
-real de flor, aunque pase por el pipeline, rara vez queda perfectamente
-al ras en su recorte (pétalos sueltos, sombras, recorte imperfecto), así
-que puede hacer falta un ajuste fino a ojo por especie una vez existan
-las 5 fotos de prueba — ese ajuste sigue siendo una pregunta abierta que
-solo fotos reales pueden responder. Lo que ya no está en duda es la
-derivación: `y={-s}` es la línea base geométrica correcta dado el
-anclaje-abajo del pipeline.
+**Punto de partida correcto, no resultado final**: ambos offsets asumen
+que el contenido recortado llena casi todo el frame de 480×480 (por eso
+el pipeline pide "flor llenando ~90%"). Una foto real, aunque pase por
+el pipeline, rara vez queda perfectamente al ras en su recorte (pétalos
+sueltos, sombras, recorte imperfecto), así que puede hacer falta un
+ajuste fino a ojo por especie una vez existan las 5 fotos de prueba —
+eso sigue siendo una pregunta abierta que solo fotos reales pueden
+responder.
 
-Opacidad: los tallos con foto se renderizan siempre a opacidad 1,
-saltando el efecto de profundidad (`stem.tone`, ~0.72–1.0) que sí se
-aplica a las formas SVG. Ese efecto está pensado para pétalos vectoriales
-planos con degradado — sobre una fotografía se ve descolorida, y varias
-fotos semitransparentes superpuestas es justo el aspecto "collage" que
-esta prueba existe para descartar.
+Opacidad: los tallos con foto usan el mismo `stem.tone`
+(~0.72–1.0) que los tallos vectoriales — sin caso especial. Este efecto
+de profundidad no es solo cosmético de pétalo-vectorial: junto con
+`scale` y el orden de pintado, es el mecanismo que simula
+rotación/profundidad/oclusión sobre "flat sprites" (ver la sección de
+proyección 2.5D del proyecto) — precisamente lo que una foto es. Saltarlo
+para tallos-foto rompía esa señal de profundidad para todo el `<g>` del
+tallo (línea de conexión y base incluidas, no solo la flor), haciendo
+que los tallos-foto siempre lean "al frente" sin importar su posición
+real — un riesgo mayor para el look "collage" que la opacidad reducida
+en sí. Si una foto real se ve mal a 0.72 de opacidad (halo de borde
+difuminado, ver riesgo de `trim()` abajo), es señal a evaluar en la
+prueba de 15 tallos, no algo para parchear de antemano sin evidencia.
 
 ## Próximo paso
 
 1. Recibir las 5 fotos (peonía, tulipán, dalia, eucalipto, amarilis) en
    `assets/photos-raw/`.
 2. Ejecutar el pipeline sobre cada una.
-3. Asignar `photo` a esas 5 entradas en `lib/species.ts`. Al hacerlo,
-   mantén el `color` de cada especie alineado con el tono real de su
-   foto: `Species.color` no queda como decoración residual del modo
-   vectorial — sigue alimentando `colorFamily()` en `lib/species.ts`,
-   que a su vez usa la regla de choque de color del validador
-   (`lib/validator.ts`) y el swatch del catálogo en
-   `components/SpeciesCatalog.tsx`. Un `color` que no coincide con la
-   foto real puede disparar (o esconder) una advertencia de color-clash
-   que no corresponde a lo que se ve en el ramo.
+3. Poner `photo: true` en esas 5 entradas en `lib/species.ts`. Al
+   hacerlo, mantén el `color` de cada especie alineado con el tono real
+   de su foto: `Species.color` no queda como decoración residual del
+   modo vectorial — sigue alimentando `colorFamily()` en
+   `lib/species.ts`, que a su vez usa la regla de choque de color del
+   validador (`lib/validator.ts`), el swatch del catálogo en
+   `components/SpeciesCatalog.tsx`, y la sustitución por especie en
+   `lib/shoppingList.ts`. Un `color` que no coincide con la foto real
+   puede disparar (o esconder) una advertencia de color-clash, o
+   sugerir una sustitución visualmente incoherente, sin corresponder a
+   lo que se ve en el ramo.
 4. Ajustar el offset de anclaje a ojo si hace falta (partiendo de
-   `y={-s}`, ver sección anterior).
+   `y={-s}` para `tulipan`, `y={-s/2}` para el resto — ver sección
+   anterior).
 5. Montar un ramo de 15 tallos mezclando las 5 especies-foto, enseñar el
    resultado — **la decisión "¿parece foto o collage?" la toma el
    usuario**, no se automatiza.
