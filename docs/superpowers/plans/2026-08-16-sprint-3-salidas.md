@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Ship a printable export page — shopping list with seasonal substitution, composition validator, assembly diagram (cuts/angles/tie point/hand order), and browser-native print — for the Tallo bouquet composer.
+**Goal:** Ship a printable export page — shopping list with seasonal substitution, composition validator, assembly diagram (cuts/angles/tie point/hand order), and browser-native print — for the Bouquetier bouquet composer.
 
 **Architecture:** Three new pure-function lib modules (`shoppingList.ts`, `validator.ts`, `assembly.ts`) feed three new self-contained client components that each read `useBouquetStore` directly (same pattern as existing `SpeciesCatalog.tsx`/`BouquetCanvas.tsx`), composed on a new `/export` route. Two small existing-code fixes ride along: hoisting composition defaults out of `BouquetCanvas.tsx` so the diagram matches the canvas, and persisting the store so `/export` survives a reload.
 

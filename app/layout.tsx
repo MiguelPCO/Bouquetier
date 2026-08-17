@@ -3,7 +3,7 @@ import { fraunces, plexSans, plexMono } from "@/lib/fonts";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Tallo",
+  title: "Bouquetier",
   description: "Compón un ramo y obtén la lista de la compra y el diagrama de montaje.",
 };
 

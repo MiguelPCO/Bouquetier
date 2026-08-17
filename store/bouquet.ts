@@ -43,7 +43,7 @@ export const useBouquetStore = create<BouquetState>()(
         }),
     }),
     {
-      name: 'tallo-bouquet',
+      name: 'bouquetier-bouquet',
       version: 1,
       merge: (persisted, current) => {
         const raw = persisted as { stems?: unknown; nextUid?: unknown } | undefined

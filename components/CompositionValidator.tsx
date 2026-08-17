@@ -15,8 +15,8 @@ export function CompositionValidator() {
         <p className="text-[12.5px] text-muted italic">Sin avisos.</p>
       ) : (
         <ul className="space-y-1">
-          {warnings.map((warning, i) => (
-            <li key={i} className="text-[12.5px] text-warn border-l-2 border-warn pl-2">
+          {warnings.map((warning) => (
+            <li key={warning.message} className="text-[12.5px] text-warn border-l-2 border-warn pl-2">
               {warning.message}
             </li>
           ))}
