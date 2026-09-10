@@ -6,6 +6,7 @@ import { BouquetCanvas } from '@/components/BouquetCanvas'
 import { SpeciesCatalog } from '@/components/SpeciesCatalog'
 import { ShareLinkSync } from '@/components/ShareLinkSync'
 import { ExportPngButton } from '@/components/ExportPngButton'
+import { CopyShareLinkButton } from '@/components/CopyShareLinkButton'
 import { decodeShareLink, describeShareBouquet } from '@/lib/shareLink'
 
 export async function generateMetadata({
@@ -35,6 +36,7 @@ export default function Home() {
       <div className="flex items-center justify-between mb-6">
         <h1 className="font-display text-2xl font-semibold">Monta tu ramo</h1>
         <div className="flex items-center gap-3">
+          <CopyShareLinkButton />
           <ExportPngButton />
           <Link href="/export" className="text-accent underline text-[13px]">
             Exportar →
