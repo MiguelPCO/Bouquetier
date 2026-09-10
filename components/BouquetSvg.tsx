@@ -3,6 +3,20 @@ import type { Stem } from '@/lib/species'
 import { layout, noise, headPx, autoDensity, DEFAULT_COMPOSITION } from '@/lib/vogel'
 import { FlowerHead } from './FlowerHead'
 
+/** The single source of truth for the bouquet drawing's coordinate frame. Anything that
+ *  needs the same frame — BouquetCanvas's empty state, exportPng's output aspect ratio —
+ *  derives it from here instead of re-typing the numbers. */
+export const BOUQUET_VIEWBOX = { x: -200, y: -310, width: 400, height: 450 } as const
+
+const VIEWBOX = `${BOUQUET_VIEWBOX.x} ${BOUQUET_VIEWBOX.y} ${BOUQUET_VIEWBOX.width} ${BOUQUET_VIEWBOX.height}`
+
+// Stem green (#3F5D3A) and the base-ribbon browns are hardcoded hex on purpose: this SVG is
+// also rasterized standalone (sharp in app/api/og/route.ts, canvas in lib/exportPng.ts),
+// where no stylesheet is loaded and a `var(--color-*)` would resolve to nothing and paint
+// black. #3F5D3A must be kept in sync by hand with `--color-accent` in tokens/theme.css —
+// a theme change there will NOT propagate here.
+const STEM_GREEN = '#3F5D3A'
+
 interface BouquetSvgProps {
   stems: Stem[]
   /** CSS color for a background rect filling the viewBox. Omit for a transparent export. */
@@ -14,8 +28,16 @@ export function BouquetSvg({ stems, background }: BouquetSvgProps) {
   const placed = layout(stems, { ...DEFAULT_COMPOSITION, density })
 
   return (
-    <svg viewBox="-200 -310 400 450" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Ramo">
-      {background && <rect x="-200" y="-310" width="400" height="450" fill={background} />}
+    <svg viewBox={VIEWBOX} xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Ramo">
+      {background && (
+        <rect
+          x={BOUQUET_VIEWBOX.x}
+          y={BOUQUET_VIEWBOX.y}
+          width={BOUQUET_VIEWBOX.width}
+          height={BOUQUET_VIEWBOX.height}
+          fill={background}
+        />
+      )}
 
       {placed.map((stem) => {
         const baseX = stem.x * 0.16
@@ -25,12 +47,12 @@ export function BouquetSvg({ stems, background }: BouquetSvgProps) {
             <path
               d={`M 0 0 Q ${stem.x * 0.34} ${stem.y * 0.55} ${stem.x} ${stem.y}`}
               fill="none"
-              stroke="#3F5D3A"
+              stroke={STEM_GREEN}
               strokeWidth={1.5 * stem.scale}
               strokeLinecap="round"
               opacity="0.75"
             />
-            <line x1="0" y1="0" x2={baseX} y2={baseY} stroke="#3F5D3A" strokeWidth="1.4" strokeLinecap="round" opacity="0.55" />
+            <line x1="0" y1="0" x2={baseX} y2={baseY} stroke={STEM_GREEN} strokeWidth="1.4" strokeLinecap="round" opacity="0.55" />
             <g transform={`translate(${stem.x} ${stem.y}) scale(${stem.scale})`}>
               <FlowerHead shape={stem.species.shape} size={headPx(stem.species)} color={stem.species.color} uid={stem.uid} />
             </g>
