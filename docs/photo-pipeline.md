@@ -2,9 +2,17 @@
 
 ## Estado
 
-Prueba de 5 especies **pendiente** — pipeline y renderizado listos, a la
-espera de que se entreguen las 5 fotos reales. Ninguna especie del
-catálogo tiene `photo` asignado todavía.
+**Cerrado — no viable (2026-09-10).** Las 5 fotos se recibieron,
+procesaron e integraron (`photo: true` en las 5 especies). Se montó un
+ramo de prueba de 15 tallos (3 por especie) en la app real y el
+veredicto fue collage, no foto: `amarilis.png` está encuadrada en
+close-up extremo frente al margen amplio de las otras 4, dominando la
+composición; el resto se veía con elementos sueltos poco coherentes
+entre sí. Por la regla de `SPRINTS.md`, se revirtió a SVG ilustrado —
+`photo` fue removido de las 5 entradas en `lib/species.ts`. Este
+documento y los PNGs en `public/photos/` quedan como referencia, sin
+borrarse; el pipeline (`scripts/prepare-photo.mjs`) sigue siendo válido
+si se retoma el tema con fotos mejor encuadradas.
 
 ## Convención de entrega
 
@@ -112,27 +120,11 @@ en sí. Si una foto real se ve mal a 0.72 de opacidad (halo de borde
 difuminado, ver riesgo de `trim()` abajo), es señal a evaluar en la
 prueba de 15 tallos, no algo para parchear de antemano sin evidencia.
 
-## Próximo paso
+## Próximo paso — completado, tema cerrado
 
-1. Recibir las 5 fotos (peonía, tulipán, dalia, eucalipto, amarilis) en
-   `assets/photos-raw/`.
-2. Ejecutar el pipeline sobre cada una.
-3. Poner `photo: true` en esas 5 entradas en `lib/species.ts`. Al
-   hacerlo, mantén el `color` de cada especie alineado con el tono real
-   de su foto: `Species.color` no queda como decoración residual del
-   modo vectorial — sigue alimentando `colorFamily()` en
-   `lib/species.ts`, que a su vez usa la regla de choque de color del
-   validador (`lib/validator.ts`), el swatch del catálogo en
-   `components/SpeciesCatalog.tsx`, y la sustitución por especie en
-   `lib/shoppingList.ts`. Un `color` que no coincide con la foto real
-   puede disparar (o esconder) una advertencia de color-clash, o
-   sugerir una sustitución visualmente incoherente, sin corresponder a
-   lo que se ve en el ramo.
-4. Ajustar el offset de anclaje a ojo si hace falta (partiendo de
-   `y={-s}` para `tulipan`, `y={-s/2}` para el resto — ver sección
-   anterior).
-5. Montar un ramo de 15 tallos mezclando las 5 especies-foto, enseñar el
-   resultado — **la decisión "¿parece foto o collage?" la toma el
-   usuario**, no se automatiza.
-6. Si pasa: plan aparte para producir las 35. Si no: revertir `photo` en
-   las 5 especies, cerrar el tema (regla de SPRINTS.md).
+1. ~~Recibir las 5 fotos~~ — hecho.
+2. ~~Ejecutar el pipeline sobre cada una~~ — hecho.
+3. ~~Poner `photo: true` en esas 5 entradas~~ — hecho, y revertido tras el veredicto (ver "Estado" arriba).
+4. ~~Ajustar el offset de anclaje a ojo~~ — hecho, sin cambios sobre el offset por defecto (`y={-s}` tulipán, `y={-s/2}` resto).
+5. ~~Montar un ramo de 15 tallos, enseñar el resultado~~ — hecho (2026-09-10), veredicto: collage.
+6. Se revirtió `photo` en las 5 especies, tema cerrado por regla de `SPRINTS.md`. No reabrir sin nueva decisión del usuario; si se retoma, el punto de partida es re-encuadrar `amarilis.png` con el mismo margen que las otras 4 antes de re-evaluar.

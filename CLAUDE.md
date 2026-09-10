@@ -4,13 +4,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project state
 
-Pre-code. No `package.json`, no `src/` yet — only planning docs (`START.md`, `PRD.md`, `SCHEMA.md`, `SPRINTS.md`) and a throwaway React prototype (`spiral-bouquet-prototype.jsx`) that validates the composition engine. Sprint 0 (project scaffolding) has not been run. **Read `START.md` first** — it is the entry point and links the other three docs.
+Sprints 0-3 done: engine (`lib/vogel.ts`), typed catalog (`lib/species.ts`), Zustand store (`store/bouquet.ts`), `components/BouquetCanvas.tsx`, shopping list + assembly diagram + composition validator + `/export` route all shipped and in production. Sprint 4 (photo assets) **closed, not viable** (2026-09-10) — 5-species trial (peonía, dalia, amarilis, tulipán, eucalipto) was mounted as a 15-stem bouquet and read as a collage (amarilis's source photo was cropped far tighter than the other 4, dominating the composition). Reverted to SVG per `SPRINTS.md`'s own rule; `photo` removed from all 5 `lib/species.ts` entries, pipeline (`scripts/prepare-photo.mjs`, `docs/photo-pipeline.md`) and PNGs (`public/photos/`) kept in the repo as reference, not deleted. See `SPRINTS.md` for full sequence and `PRD.md` §6 for other open decisions.
 
-Once Sprint 0 lands, this file should be updated with real `npm run dev/build/lint/test` commands and file paths — don't invent them before they exist.
+```
+npm run dev      # next dev --turbopack
+npm run build    # next build --turbopack
+npm run start
+npm run lint     # eslint
+npm run test     # vitest run
+```
 
 ## What this is
 
-TALLO (working name, unverified) — a web tool to compose a hand-tied bouquet and get a real shopping list (priced) and an assembly diagram (real measurements). No checkout, no accounts, no flower sales — it's a planning tool, not a store. Full problem/scope in `PRD.md`.
+Bouquetier (working name, unverified) — a web tool to compose a hand-tied bouquet and get a real shopping list (priced) and an assembly diagram (real measurements). No checkout, no accounts, no flower sales — it's a planning tool, not a store. Full problem/scope in `PRD.md`.
 
 ## Planned stack (Sprint 0)
 
@@ -47,7 +53,7 @@ Full type contracts (`Species`, `PlacedStem`, `Composition`, `ShoppingRow`, `Ass
 
 Strict sequence, no skipping ahead: **Sprint 0 (scaffold) → 1 (engine port) → 2 (35-species catalog) → 3 (shopping list + assembly output) → stop for asset validation → 4 (photo assets) → 5 (share via URL) → 6 (polish)**.
 
-Sprint 4 (real photography replacing SVG) does not open until a 5-species normalization test passes — this is called out repeatedly as the project's main risk (see "Known risk" below and `PRD.md` §7). If a bouquet of 15 stems reads as a photo collage rather than one coherent shot, the answer is reverting to illustrated SVG and closing the topic, not iterating further on photography.
+Sprint 4 (real photography replacing SVG) ran its 5-species normalization test and **failed it** — reverted to illustrated SVG, topic closed per the project's own rule (see "Known risk" below and `PRD.md` §7). Don't re-open photo mode without a new decision from the user; the pipeline stays in the repo but is inactive.
 
 ## Known risk — scope creep
 
@@ -57,7 +63,21 @@ Three extensions are explicitly tempting and explicitly deferred until after v1 
 
 | Decision | Blocks |
 |---|---|
-| PNG asset source/pipeline (5-species trial before committing to 35) | Full visual phase (Sprint 4) |
+| ~~PNG asset source/pipeline~~ — resolved 2026-09-10: 5-species trial failed (collage), reverted to SVG, Sprint 4 closed | — |
 | Final name — domain/trademark check | Branding/identity work |
 | Florist questionnaire validating `BIND_RATIO`, `MAX_TILT`, hand-order | Credibility of the assembly diagram (Sprint 3) |
 | Madrid florist margin sampling (8-10 shops) | Pricing accuracy (Sprint 2) |
+
+## Agent skills
+
+### Issue tracker
+
+Issues live in GitHub Issues on MiguelPCO/Bouquetier, using the `gh` CLI. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default five canonical labels (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`). See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context layout (`CONTEXT.md` + `docs/adr/` at repo root). See `docs/agents/domain.md`.

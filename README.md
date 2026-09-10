@@ -20,7 +20,7 @@ Bouquetier resuelve las tres a la vez: composición visual, precio estimado y di
 - **Medidas reales.** Cada especie declara su largo de tallo y tamaño de cabeza en centímetros/milímetros; el render deriva los píxeles desde ahí, nunca al revés.
 - **Determinismo.** El jitter visual de cada tallo viene de un `uid` estable, no de `Math.random()` — el mismo ramo genera siempre el mismo dibujo.
 - **Validación de composición.** Avisos en vivo sobre balance de roles (focal/relleno/verde), especies fuera de temporada y riesgo de sobrecarga cromática.
-- **Fotos reales opcionales.** Cada especie puede renderizarse como forma vectorial paramétrica o como foto normalizada (PNG con transparencia, pipeline propio de recorte y validación de halos) — ver [`docs/photo-pipeline.md`](docs/photo-pipeline.md).
+- **Forma vectorial paramétrica** por especie. Se probó reemplazarla por fotografía normalizada en 5 especies; la prueba no pasó (se veía como collage) y se descartó — pipeline y hallazgos documentados en [`docs/photo-pipeline.md`](docs/photo-pipeline.md).
 - **Precio como rango**, nunca cifra exacta: el modelo no da para más precisión y fingirla cuesta credibilidad.
 
 ## Stack
@@ -44,7 +44,7 @@ npm run lint     # ESLint
 
 ## Estado del proyecto
 
-Prototipo en fase de validación. El motor de composición, las medidas reales, la lista de la compra y el diagrama de montaje funcionan; los precios y la técnica de montaje están pendientes de calibración con datos de campo. El pipeline de fotos está en prueba con 5 especies antes de comprometer el catálogo completo (35 especies).
+Prototipo en fase de validación. El motor de composición, las medidas reales, la lista de la compra y el diagrama de montaje funcionan; los precios y la técnica de montaje están pendientes de calibración con datos de campo. La prueba de fotos con 5 especies se completó y no pasó (ver [`docs/photo-pipeline.md`](docs/photo-pipeline.md)) — el catálogo usa forma vectorial paramétrica.
 
 ## Documentación
 

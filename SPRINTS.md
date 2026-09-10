@@ -55,17 +55,16 @@ Un sprint = una sesión de trabajo con entregable verificable. No se avanza al s
 
 ---
 
-## Sprint 4 · Assets
+## Sprint 4 · Assets — CERRADO, no viable
+
 **Objetivo** Sustituir SVG paramétrico por fotografía.
 
-Se abre **solo** tras la prueba de 5 especies.
+- Pipeline de normalización documentado (`docs/photo-pipeline.md`)
+- 5 especies producidas y evaluadas (peonía, dalia, amarilis, tulipán, eucalipto)
+- **Veredicto (2026-09-10): collage, no foto.** Ramo de prueba de 15 tallos (3 por especie) montado en la app real — la amarilis, encuadrada en close-up extremo frente al margen amplio de las otras 4, dominaba la composición; el resto se veía "raro" y con elementos sueltos poco coherentes entre sí. Se vuelve a SVG ilustrado — regla de la casa cumplida, tema cerrado.
+- `photo` removido de las 5 especies en `lib/species.ts`. PNGs (`public/photos/`) y pipeline (`scripts/prepare-photo.mjs`, `docs/photo-pipeline.md`) quedan en el repo sin borrar, como referencia.
 
-- Pipeline de normalización documentado
-- 5 especies producidas y evaluadas
-- Punto de decisión: si el ramo se ve como collage, se vuelve a SVG ilustrado y se cierra el tema
-- Si pasa: producir las 35
-
-**Hecho cuando** un ramo de 15 tallos lee como fotografía y no como recorte.
+**Hecho.**
 
 ---
 

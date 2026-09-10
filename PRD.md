@@ -67,14 +67,14 @@ Cuentas de usuario · guardado en servidor · venta o checkout · integración c
 
 | Decisión | Recomendación | Bloquea |
 |---|---|---|
-| Origen de los PNGs | Probar 5 especies antes de comprometer 35 | Fase visual completa |
+| ~~Origen de los PNGs~~ | Resuelto 2026-09-10: prueba de 5 especies falló (collage), se vuelve a SVG — ver `docs/photo-pipeline.md` | — |
 | Nombre definitivo | Verificar dominio y marca antes de identidad | Branding |
 | Validación de la técnica | Cuestionario a florista profesional | Credibilidad del diagrama |
 | Calibración del margen | Muestreo de 8–10 floristerías | Precisión del precio |
 
 ## 7. Riesgos
 
-**Assets — alto.** Es el riesgo que puede matar el proyecto y no es técnico. Mezclar fuentes de stock produce iluminaciones, ángulos y escalas distintas: el ramo se ve como un collage. Mitigación: pipeline de normalización definido antes de producir volumen, y prueba con 5 especies.
+**Assets — alto.** Es el riesgo que puede matar el proyecto y no es técnico. Mezclar fuentes de stock produce iluminaciones, ángulos y escalas distintas: el ramo se ve como un collage. Mitigación: pipeline de normalización definido antes de producir volumen, y prueba con 5 especies. **Materializado (2026-09-10):** la prueba de 5 especies confirmó el riesgo — escala de encuadre inconsistente entre fotos produjo collage — se descartó el modo foto, ver `docs/photo-pipeline.md`.
 
 **Precio inventado — medio.** Sin calibración real el rango es una hipótesis presentada como dato. Mitigación: muestreo de campo y lenguaje explícitamente estimativo en la interfaz.
 
