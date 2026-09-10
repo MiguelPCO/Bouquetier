@@ -1,4 +1,18 @@
-import { SPECIES, type Species, type Stem } from './species'
+import { SPECIES, type Stem } from './species'
+
+/**
+ * Hard ceiling on how many stems a share link may reconstruct.
+ *
+ * `?s=` is untrusted input reachable from three places — `app/api/og/route.ts`,
+ * `app/page.tsx`'s `generateMetadata`, and `components/ShareLinkSync.tsx` — so an
+ * unbounded count (`?s=peonia:100000000`) would allocate 100M array entries on a plain
+ * page load, and additionally feed all of them into SVG generation + `sharp` rasterization
+ * on the OG route. A real hand-tied bouquet runs 12-24 stems (`STEM_RANGE` in SCHEMA.md),
+ * so 200 is generous for any legitimate link while keeping the worst case cheap.
+ *
+ * The cap lives inside `decodeShareLink` so all three consumers inherit it automatically.
+ */
+export const MAX_STEMS = 200
 
 export function encodeShareLink(stems: Stem[]): string {
   const counts = new Map<string, number>()
@@ -25,9 +39,11 @@ export function decodeShareLink(param: string | null | undefined): Stem[] {
     const count = Number(countRaw)
     if (!Number.isFinite(count) || count <= 0) continue
 
-    for (let i = 0; i < Math.floor(count); i++) {
+    const wanted = Math.min(Math.floor(count), MAX_STEMS - stems.length)
+    for (let i = 0; i < wanted; i++) {
       stems.push({ uid: nextUid++, species })
     }
+    if (stems.length >= MAX_STEMS) break
   }
 
   return stems
@@ -64,5 +80,3 @@ export function describeShareBouquet(stems: Stem[]): { title: string; descriptio
 
   return { title, description: `${list} — mira este ramo` }
 }
-
-export type { Species }

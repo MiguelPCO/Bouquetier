@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { encodeShareLink, decodeShareLink, describeShareBouquet } from './shareLink'
+import { encodeShareLink, decodeShareLink, describeShareBouquet, MAX_STEMS } from './shareLink'
 import { SPECIES } from './species'
 
 const peonia = SPECIES.find((s) => s.id === 'peonia')!
@@ -66,6 +66,22 @@ describe('decodeShareLink', () => {
       { uid: 1, species: dalia },
       { uid: 2, species: dalia },
     ])
+  })
+
+  it('caps an absurd count at MAX_STEMS instead of allocating it', () => {
+    const stems = decodeShareLink('peonia:100000000')
+    expect(stems).toHaveLength(MAX_STEMS)
+    expect(stems.length).toBeLessThanOrEqual(MAX_STEMS)
+  })
+
+  it('caps the total across multiple pairs, not per pair', () => {
+    const stems = decodeShareLink(`peonia:${MAX_STEMS},dalia:${MAX_STEMS},eucalipto:5`)
+    expect(stems).toHaveLength(MAX_STEMS)
+    expect(stems.every((stem) => stem.species.id === 'peonia')).toBe(true)
+  })
+
+  it('leaves realistic bouquets untouched by the cap', () => {
+    expect(decodeShareLink('peonia:12,dalia:12')).toHaveLength(24)
   })
 })
 
