@@ -1258,9 +1258,13 @@ export function CopyShareLinkButton() {
 
 - [ ] **Step 2: Agregar el botón en `app/page.tsx`**
 
+Agregar el import:
+
 ```tsx
 import { CopyShareLinkButton } from '@/components/CopyShareLinkButton'
 ```
+
+Reemplazar el `<div className="flex items-center gap-3">...</div>` que dejó el Task 9 (el que envuelve `<ExportPngButton />` y el link "Exportar →") por:
 
 ```tsx
         <div className="flex items-center gap-3">
