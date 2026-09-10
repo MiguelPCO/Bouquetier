@@ -1,7 +1,27 @@
 // app/page.tsx
 import Link from 'next/link'
+import type { Metadata } from 'next'
 import { BouquetCanvas } from '@/components/BouquetCanvas'
 import { SpeciesCatalog } from '@/components/SpeciesCatalog'
+import { decodeShareLink, describeShareBouquet } from '@/lib/shareLink'
+
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams: Promise<{ s?: string }>
+}): Promise<Metadata> {
+  const { s } = await searchParams
+  const stems = decodeShareLink(s)
+  const { title, description } = describeShareBouquet(stems)
+
+  const images = stems.length > 0 ? [`/api/og?s=${encodeURIComponent(s ?? '')}`] : ['/og-fallback.png']
+
+  return {
+    title,
+    description,
+    openGraph: { title, description, images },
+  }
+}
 
 export default function Home() {
   return (
