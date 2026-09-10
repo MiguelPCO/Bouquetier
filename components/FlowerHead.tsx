@@ -1,5 +1,6 @@
 // components/FlowerHead.tsx
 import { noise } from '@/lib/vogel'
+import { oklchToHex } from '@/lib/color'
 import type { Shape } from '@/lib/species'
 
 interface FlowerHeadProps {
@@ -53,13 +54,18 @@ function PetalRings({
 
 export function FlowerHead({ shape, size: s, color, uid }: FlowerHeadProps) {
   const gradId = `fh-${shape}-${uid}`
+  // Species colors are `oklch()` strings. Browsers parse those, but `sharp`/librsvg (the
+  // server-side rasterizer behind app/api/og/route.ts) does not — it silently paints them
+  // black. Convert once here so every fill/stop-color below is a plain hex that renders
+  // identically in the browser and in a standalone rasterized SVG.
+  const hex = oklchToHex(color)
 
   switch (shape) {
     case 'peony':
       return (
         <g>
           <defs>
-            <Gradient id={gradId} color={color} />
+            <Gradient id={gradId} color={hex} />
           </defs>
           <PetalRings
             id={gradId}
@@ -70,7 +76,7 @@ export function FlowerHead({ shape, size: s, color, uid }: FlowerHeadProps) {
               { count: 7, length: s * 0.3, width: s * 0.2, radius: s * 0.07, rotationOffset: 36, opacity: 1 },
             ]}
           />
-          <circle r={s * 0.08} fill={color} opacity="0.55" />
+          <circle r={s * 0.08} fill={hex} opacity="0.55" />
           <circle r={s * 0.04} fill="#1c1f1a" opacity="0.3" />
         </g>
       )
@@ -79,7 +85,7 @@ export function FlowerHead({ shape, size: s, color, uid }: FlowerHeadProps) {
       return (
         <g>
           <defs>
-            <Gradient id={gradId} color={color} />
+            <Gradient id={gradId} color={hex} />
           </defs>
           <PetalRings
             id={gradId}
@@ -97,7 +103,7 @@ export function FlowerHead({ shape, size: s, color, uid }: FlowerHeadProps) {
       return (
         <g>
           <defs>
-            <Gradient id={gradId} color={color} />
+            <Gradient id={gradId} color={hex} />
           </defs>
           <PetalRings
             id={gradId}
@@ -115,7 +121,7 @@ export function FlowerHead({ shape, size: s, color, uid }: FlowerHeadProps) {
       return (
         <g>
           <defs>
-            <Gradient id={gradId} color={color} />
+            <Gradient id={gradId} color={hex} />
           </defs>
           <path
             d={`M ${-s * 0.34} ${s * 0.1} C ${-s * 0.38} ${-s * 0.5} ${-s * 0.12} ${-s * 0.6} 0 ${-s * 0.6} C ${s * 0.12} ${-s * 0.6} ${s * 0.38} ${-s * 0.5} ${s * 0.34} ${s * 0.1} C ${s * 0.2} ${s * 0.44} ${-s * 0.2} ${s * 0.44} ${-s * 0.34} ${s * 0.1} Z`}
@@ -135,7 +141,7 @@ export function FlowerHead({ shape, size: s, color, uid }: FlowerHeadProps) {
       return (
         <g>
           <defs>
-            <Gradient id={gradId} color={color} />
+            <Gradient id={gradId} color={hex} />
           </defs>
           {Array.from({ length: 9 }, (_, i) => {
             const a = (i / 9) * Math.PI * 2 + noise(uid + i) * 1.4
@@ -150,7 +156,7 @@ export function FlowerHead({ shape, size: s, color, uid }: FlowerHeadProps) {
       return (
         <g opacity="0.95">
           <defs>
-            <Gradient id={gradId} color={color} />
+            <Gradient id={gradId} color={hex} />
           </defs>
           {Array.from({ length: 16 }, (_, i) => {
             const a = (i / 16) * Math.PI * 2 + noise(uid + i * 7) * 2
@@ -166,8 +172,8 @@ export function FlowerHead({ shape, size: s, color, uid }: FlowerHeadProps) {
         <g transform={`rotate(${noise(uid) * 60 - 30})`}>
           <defs>
             <linearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor={color} stopOpacity="0.7" />
-              <stop offset="100%" stopColor={color} />
+              <stop offset="0%" stopColor={hex} stopOpacity="0.7" />
+              <stop offset="100%" stopColor={hex} />
             </linearGradient>
           </defs>
           <path
@@ -182,7 +188,7 @@ export function FlowerHead({ shape, size: s, color, uid }: FlowerHeadProps) {
       return (
         <g transform={`rotate(${noise(uid) * 24 - 12})`}>
           <defs>
-            <Gradient id={gradId} color={color} />
+            <Gradient id={gradId} color={hex} />
           </defs>
           {Array.from({ length: 7 }, (_, i) => {
             const t = i / 6
@@ -194,6 +200,6 @@ export function FlowerHead({ shape, size: s, color, uid }: FlowerHeadProps) {
       )
 
     default:
-      return <circle r={s * 0.4} fill={color} />
+      return <circle r={s * 0.4} fill={hex} />
   }
 }
