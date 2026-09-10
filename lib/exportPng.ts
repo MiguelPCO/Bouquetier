@@ -1,14 +1,18 @@
 // lib/exportPng.ts
 'use client'
 
-import { renderToStaticMarkup } from 'react-dom/server'
-import { BouquetSvg } from '@/components/BouquetSvg'
+import { BouquetSvg, BOUQUET_VIEWBOX } from '@/components/BouquetSvg'
 import type { Stem } from './species'
 
 const EXPORT_WIDTH = 900
-const EXPORT_HEIGHT = 1012 // mantiene la proporción 400:450 del viewBox de BouquetSvg
+/** Derived from BouquetSvg's own viewBox so the export can never drift from the drawing. */
+const EXPORT_HEIGHT = Math.round(EXPORT_WIDTH * (BOUQUET_VIEWBOX.height / BOUQUET_VIEWBOX.width))
 
 export async function downloadBouquetPng(stems: Stem[]): Promise<void> {
+  // Dynamic import so react-dom/server's browser build is code-split out of the initial
+  // bundle for `/`: this module is pulled in statically by ExportPngButton, so a top-level
+  // import shipped the whole renderer to every visitor whether or not they ever export.
+  const { renderToStaticMarkup } = await import('react-dom/server')
   const svgMarkup = renderToStaticMarkup(BouquetSvg({ stems }))
   const svgWithSize = svgMarkup.replace('<svg ', `<svg width="${EXPORT_WIDTH}" height="${EXPORT_HEIGHT}" `)
 
@@ -38,5 +42,7 @@ export async function downloadBouquetPng(stems: Stem[]): Promise<void> {
   document.body.appendChild(link)
   link.click()
   document.body.removeChild(link)
-  URL.revokeObjectURL(url)
+  // Deferred, not synchronous: revoking in the same tick as click() has historically
+  // cancelled the download in some browsers, which start reading the blob asynchronously.
+  setTimeout(() => URL.revokeObjectURL(url), 100)
 }
