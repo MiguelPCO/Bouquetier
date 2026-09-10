@@ -16,12 +16,18 @@ export function CopyShareLinkButton() {
     if (navigator.share) {
       try {
         await navigator.share({ title, text: description, url })
-      } catch {
-        // El usuario cerró el share-sheet — no es un error a mostrar.
+        return
+      } catch (error) {
+        // Sólo el cierre del share-sheet por parte del usuario se ignora en silencio.
+        if (error instanceof Error && error.name === 'AbortError') return
+        // Cualquier otro fallo (permisos, share no soportado para estos datos, etc.) cae
+        // al portapapeles en vez de dejar al usuario sin ninguna respuesta.
       }
-      return
     }
 
+    // `navigator.clipboard` es undefined en orígenes inseguros (HTTP no-localhost); sin
+    // esta guarda el await lanzaría un rejection sin ningún feedback.
+    if (!navigator.clipboard) return
     await navigator.clipboard.writeText(url)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
