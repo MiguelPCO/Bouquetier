@@ -21,9 +21,16 @@ interface BouquetSvgProps {
   stems: Stem[]
   /** CSS color for a background rect filling the viewBox. Omit for a transparent export. */
   background?: string
+  /**
+   * When provided, BouquetCanvas (the interactive, client-only view) uses this to grab a ref
+   * to each stem's flower-head <g> and drives its position/scale with GSAP instead of the
+   * static `transform` attribute below. Omitted by every other caller (the OG route, PNG
+   * export) — BouquetSvg itself stays hook-free either way, this is just a ref pass-through.
+   */
+  getGroupRef?: (uid: number) => (el: SVGGElement | null) => void
 }
 
-export function BouquetSvg({ stems, background }: BouquetSvgProps) {
+export function BouquetSvg({ stems, background, getGroupRef }: BouquetSvgProps) {
   const density = autoDensity(stems)
   const placed = layout(stems, { ...DEFAULT_COMPOSITION, density })
 
@@ -53,7 +60,10 @@ export function BouquetSvg({ stems, background }: BouquetSvgProps) {
               opacity="0.75"
             />
             <line x1="0" y1="0" x2={baseX} y2={baseY} stroke={STEM_GREEN} strokeWidth="1.4" strokeLinecap="round" opacity="0.55" />
-            <g transform={`translate(${stem.x} ${stem.y}) scale(${stem.scale})`}>
+            <g
+              ref={getGroupRef?.(stem.uid)}
+              transform={getGroupRef ? undefined : `translate(${stem.x} ${stem.y}) scale(${stem.scale})`}
+            >
               <FlowerHead shape={stem.species.shape} size={headPx(stem.species)} color={stem.species.color} uid={stem.uid} />
             </g>
           </g>

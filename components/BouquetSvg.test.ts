@@ -39,4 +39,16 @@ describe('BouquetSvg', () => {
     const markup = renderToStaticMarkup(BouquetSvg({ stems: [] }))
     expect(markup).not.toContain('Añade una flor focal')
   })
+
+  it('omits the static transform when getGroupRef is provided (GSAP owns position instead)', () => {
+    const markup = renderToStaticMarkup(
+      BouquetSvg({ stems: [{ uid: 1, species: peonia }], getGroupRef: () => () => {} })
+    )
+    expect(markup).not.toMatch(/<g transform="translate/)
+  })
+
+  it('keeps the static transform when getGroupRef is omitted (server/export rendering)', () => {
+    const markup = renderToStaticMarkup(BouquetSvg({ stems: [{ uid: 1, species: peonia }] }))
+    expect(markup).toMatch(/<g transform="translate/)
+  })
 })
