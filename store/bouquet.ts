@@ -7,6 +7,7 @@ interface BouquetState {
   nextUid: number
   add: (species: Species) => void
   remove: (speciesId: string) => void
+  setStems: (stems: Stem[]) => void
 }
 
 function resolveStems(rawStems: unknown): Stem[] {
@@ -41,6 +42,11 @@ export const useBouquetStore = create<BouquetState>()(
           const realIdx = state.stems.length - 1 - reversedIdx
           return { stems: state.stems.filter((_, i) => i !== realIdx) }
         }),
+      setStems: (stems) =>
+        set(() => ({
+          stems,
+          nextUid: stems.reduce((max, s) => Math.max(max, s.uid), 0) + 1,
+        })),
     }),
     {
       name: 'bouquetier-bouquet',
