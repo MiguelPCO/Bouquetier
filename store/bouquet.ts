@@ -42,6 +42,12 @@ export const useBouquetStore = create<BouquetState>()(
           const realIdx = state.stems.length - 1 - reversedIdx
           return { stems: state.stems.filter((_, i) => i !== realIdx) }
         }),
+      // INVARIANT: must assign `stems` by reference, not clone it — no `[...stems]`, no
+      // `structuredClone`, no `.map()`. ShareLinkSync's write-effect guard
+      // (components/ShareLinkSync.tsx) compares the store's array against the exact array
+      // it passed in, via `===`, to detect when a URL-driven load has actually landed. A
+      // clone would silently break that detection and permanently stall URL sync, with no
+      // visible error — the address bar would just stop tracking the bouquet.
       setStems: (stems) =>
         set(() => ({
           stems,

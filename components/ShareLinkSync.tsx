@@ -32,8 +32,17 @@ export function ShareLinkSync() {
     hasLoadedFromUrl.current = true
     if (s) {
       const decoded = decodeShareLink(s)
-      pendingLoadRef.current = decoded
-      setStems(decoded)
+      if (decoded.length > 0) {
+        pendingLoadRef.current = decoded
+        setStems(decoded)
+      } else {
+        // `s` was present but decoded to nothing (garbage or a truncated link). Calling
+        // setStems([]) here would replace the store with an empty bouquet and — via
+        // zustand's persist middleware — permanently wipe whatever the recipient had saved
+        // in localStorage, with no warning. Leave the store alone and just clear the
+        // dangling param so a reload doesn't repeat this.
+        setS(null)
+      }
     }
     // Only runs once, on mount — deliberately not depending on `s` again after that,
     // so it never re-triggers from the writes the effect below makes.
