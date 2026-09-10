@@ -39,7 +39,7 @@ export function BouquetCanvas() {
             />
             <line x1="0" y1="0" x2={baseX} y2={baseY} stroke="var(--color-accent)" strokeWidth="1.4" strokeLinecap="round" opacity="0.55" />
             <g transform={`translate(${stem.x} ${stem.y}) scale(${stem.scale})`}>
-              <FlowerHead shape={stem.species.shape} size={headPx(stem.species)} color={stem.species.color} uid={stem.uid} id={stem.species.id} photo={stem.species.photo} />
+              <FlowerHead shape={stem.species.shape} size={headPx(stem.species)} color={stem.species.color} uid={stem.uid} />
             </g>
           </g>
         )

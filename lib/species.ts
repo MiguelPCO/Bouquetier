@@ -15,8 +15,6 @@ export interface Species {
   season: number[]
   vaseDays: number
   dry: boolean
-  /** true once public/photos/<id>.png exists (produced by scripts/prepare-photo.mjs) */
-  photo?: boolean
 }
 
 export interface Stem {
