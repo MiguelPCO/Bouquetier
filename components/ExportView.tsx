@@ -5,6 +5,7 @@ import { useBouquetStore } from '@/store/bouquet'
 import { ShoppingList } from './ShoppingList'
 import { CompositionValidator } from './CompositionValidator'
 import { AssemblyDiagram } from './AssemblyDiagram'
+import { ExportPngButton } from './ExportPngButton'
 
 export function ExportView() {
   const stems = useBouquetStore((state) => state.stems)
@@ -26,13 +27,16 @@ export function ExportView() {
         <Link href="/" className="text-accent underline text-[13px]">
           ← Volver
         </Link>
-        <button
-          type="button"
-          onClick={() => window.print()}
-          className="px-3 py-1.5 rounded-md border border-line text-[13px]"
-        >
-          Imprimir
-        </button>
+        <div className="flex items-center gap-2">
+          <ExportPngButton />
+          <button
+            type="button"
+            onClick={() => window.print()}
+            className="px-3 py-1.5 rounded-md border border-line text-[13px]"
+          >
+            Imprimir
+          </button>
+        </div>
       </div>
       <ShoppingList />
       <CompositionValidator />

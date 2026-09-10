@@ -5,6 +5,7 @@ import type { Metadata } from 'next'
 import { BouquetCanvas } from '@/components/BouquetCanvas'
 import { SpeciesCatalog } from '@/components/SpeciesCatalog'
 import { ShareLinkSync } from '@/components/ShareLinkSync'
+import { ExportPngButton } from '@/components/ExportPngButton'
 import { decodeShareLink, describeShareBouquet } from '@/lib/shareLink'
 
 export async function generateMetadata({
@@ -33,9 +34,12 @@ export default function Home() {
       </Suspense>
       <div className="flex items-center justify-between mb-6">
         <h1 className="font-display text-2xl font-semibold">Monta tu ramo</h1>
-        <Link href="/export" className="text-accent underline text-[13px]">
-          Exportar →
-        </Link>
+        <div className="flex items-center gap-3">
+          <ExportPngButton />
+          <Link href="/export" className="text-accent underline text-[13px]">
+            Exportar →
+          </Link>
+        </div>
       </div>
       <div className="grid gap-6 md:grid-cols-[260px_1fr]">
         <SpeciesCatalog />
