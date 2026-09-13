@@ -1,26 +1,216 @@
 // components/BouquetCanvas.tsx
 'use client'
 
+import { useEffect, useMemo, useRef, useState } from 'react'
+import gsap from 'gsap'
+import { useGSAP } from '@gsap/react'
 import { useBouquetStore } from '@/store/bouquet'
 import { BouquetSvg, BOUQUET_VIEWBOX } from './BouquetSvg'
+import { layout, autoDensity, DEFAULT_COMPOSITION } from '@/lib/vogel'
+import { diffStemUids } from '@/lib/animationDiff'
+import type { Stem } from '@/lib/species'
+
+gsap.registerPlugin(useGSAP)
 
 // Same coordinate frame as BouquetSvg, so the empty state and the drawn bouquet occupy
 // exactly the same box and the layout doesn't jump when the first stem is added.
 const VIEWBOX = `${BOUQUET_VIEWBOX.x} ${BOUQUET_VIEWBOX.y} ${BOUQUET_VIEWBOX.width} ${BOUQUET_VIEWBOX.height}`
+const TWEEN_DURATION = 0.25
+const TWEEN_EASE = 'power2.out'
+
+function useReducedMotion(): boolean {
+  const [reduced, setReduced] = useState(false)
+  useEffect(() => {
+    const mql = window.matchMedia('(prefers-reduced-motion: reduce)')
+    setReduced(mql.matches)
+    const onChange = () => setReduced(mql.matches)
+    mql.addEventListener('change', onChange)
+    return () => mql.removeEventListener('change', onChange)
+  }, [])
+  return reduced
+}
+
+// zustand's `persist` middleware resolves hydration from localStorage through a `.then()`
+// chain that, for genuinely synchronous storage (real `localStorage`), often runs to
+// completion synchronously — but React's `useSyncExternalStore` (which powers the store hook)
+// still deliberately renders the pre-hydration snapshot first on the client, to match the
+// server-rendered HTML, before correcting to the real client state on a follow-up render. So
+// `stems` is `[]` on that first render regardless of how fast hydration itself resolves —
+// seeding anything from it before hydration lands would treat every persisted stem as "new"
+// once the corrected snapshot arrives. This hook lets BouquetCanvas wait for that real
+// hydrated data before seeding its animation baseline.
+//
+// The initial state is a plain `false`, not `useBouquetStore.persist.hasHydrated()`: on the
+// server, `window` doesn't exist, so the default `createJSONStorage(() => window.localStorage)`
+// throws, is swallowed, and `persist` middleware never attaches `.persist` to the store at all
+// — reading it during SSR render (outside an effect) throws "Cannot read properties of
+// undefined (reading 'hasHydrated')" and 500s every page load. Effects never run on the server,
+// so deferring the `.persist` read into the effect below is both crash-safe and behaviorally
+// identical on the client (hydration is always still pending at first client render anyway).
+function useHasHydrated(): boolean {
+  const [hydrated, setHydrated] = useState(false)
+  useEffect(() => {
+    if (useBouquetStore.persist.hasHydrated()) {
+      setHydrated(true)
+      return
+    }
+    return useBouquetStore.persist.onFinishHydration(() => setHydrated(true))
+  }, [])
+  return hydrated
+}
 
 export function BouquetCanvas() {
   const stems = useBouquetStore((state) => state.stems)
+  const hydrated = useHasHydrated()
+  const [displayStems, setDisplayStems] = useState<Stem[]>([])
+  const groupRefs = useRef(new Map<number, SVGGElement>())
+  // Stems already present on first hydrated render sit at their final position with no
+  // entrance tween (opening a shared link shouldn't animate the whole bouquet popping in) —
+  // only stems added after that get the enter animation. Seeded once hydration lands (see the
+  // effect below), not eagerly at declaration time, since `stems` is `[]` pre-hydration.
+  const enteredUidsRef = useRef(new Set<number>())
+  // Which uids have ever had a pose (x/y/scale) applied to their <g> by GSAP in this component
+  // instance's lifetime — distinct from `enteredUidsRef`. A hydration-seeded stem is already in
+  // `enteredUidsRef` (skip its fade-in) but its <g> is a brand-new DOM node GSAP has never
+  // touched, so the "reflow" branch's `gsap.to(el, {x, y, scale, ...})` would tween it FROM the
+  // browser's default identity transform (0,0, scale 1) — visible as every existing stem flying
+  // in from the canvas center on reload, since `useGSAP` runs as a layout effect (before paint),
+  // so that wrong starting pose is exactly what the browser's first frame shows. Any uid not yet
+  // in this set gets an instant `gsap.set` to its real pose instead of a tween, whether or not
+  // it's also in `enteredUidsRef`; only a stem positioned at least once already reflows smoothly.
+  const positionedUidsRef = useRef(new Set<number>())
+  const hasSeededRef = useRef(false)
+  // The exact `stems` array reference the seed effect below last seeded `displayStems` from.
+  // `hydrated` flipping true and `stems` landing its real hydrated value can commit together in
+  // the very same React commit (React re-renders with the corrected `useSyncExternalStore`
+  // snapshot in the same pass hydration finishes), which runs the seed effect and the
+  // store-sync effect below in the same passive-effect flush, in declaration order. Guarding
+  // the store-sync effect with only `hasSeededRef.current` isn't enough: the seed effect sets
+  // that ref synchronously before the store-sync effect's guard even checks it, so the guard
+  // never trips, and the store-sync effect then diffs against `displayStems` from this render's
+  // (pre-seed) closure — still `[]` — against the now-hydrated `stems`, computing every stem as
+  // "entering" and appending them on top of what the seed effect just set, doubling the
+  // bouquet with duplicate uids (and the React "two children with the same key" warning that
+  // comes with it). Comparing `stems` against the exact reference last seeded — rather than a
+  // one-shot flag — tolerates this same-commit case (and any StrictMode replay of it) without
+  // ever swallowing a later, genuinely new `stems` reference from a real add/remove.
+  const lastSeededStemsRef = useRef<Stem[] | null>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const reducedMotion = useReducedMotion()
+
+  // Seed the animation baseline exactly once, when the persisted store has actually finished
+  // hydrating — using the real hydrated `stems`, not the empty pre-hydration array.
+  useEffect(() => {
+    if (!hydrated || hasSeededRef.current) return
+    hasSeededRef.current = true
+    lastSeededStemsRef.current = stems
+    enteredUidsRef.current = new Set(stems.map((s) => s.uid))
+    setDisplayStems(stems)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hydrated])
+
+  const placed = useMemo(
+    () => layout(displayStems, { ...DEFAULT_COMPOSITION, density: autoDensity(displayStems) }),
+    [displayStems]
+  )
+
+  // Sync the store into displayStems. Additions land immediately (so their <g> mounts and can
+  // be ref'd for the entrance tween in the effect below). Removals stay in displayStems, still
+  // rendered, until their exit tween finishes — that's what lets a removed stem visibly shrink
+  // away instead of vanishing the instant the store drops it.
+  useEffect(() => {
+    if (!hasSeededRef.current || stems === lastSeededStemsRef.current) return
+    const { entering, exiting } = diffStemUids(
+      displayStems.map((s) => s.uid),
+      stems.map((s) => s.uid)
+    )
+    if (entering.length === 0 && exiting.length === 0) return
+
+    if (entering.length > 0) {
+      const newStems = stems.filter((s) => entering.includes(s.uid))
+      setDisplayStems((prev) => [...prev, ...newStems])
+    }
+
+    if (exiting.length > 0) {
+      if (reducedMotion) {
+        for (const uid of exiting) enteredUidsRef.current.delete(uid)
+        setDisplayStems(stems)
+      } else {
+        let pending = exiting.length
+        const finishExit = (uid: number) => {
+          enteredUidsRef.current.delete(uid)
+          pending -= 1
+          if (pending === 0) {
+            setDisplayStems((prev) => prev.filter((s) => !exiting.includes(s.uid)))
+          }
+        }
+        for (const uid of exiting) {
+          const el = groupRefs.current.get(uid)
+          if (!el) {
+            finishExit(uid)
+            continue
+          }
+          gsap.to(el, {
+            scale: 0,
+            opacity: 0,
+            duration: TWEEN_DURATION,
+            ease: 'power2.in',
+            onComplete: () => finishExit(uid),
+          })
+        }
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stems])
+
+  // Entrance + reflow. Fires whenever `placed` changes — including the render right after the
+  // effect above grows displayStems, once the new stem's <g> actually exists in the DOM.
+  useGSAP(
+    () => {
+      for (const stem of placed) {
+        const el = groupRefs.current.get(stem.uid)
+        if (!el) continue
+
+        const isFirstPose = !positionedUidsRef.current.has(stem.uid)
+        positionedUidsRef.current.add(stem.uid)
+
+        if (!enteredUidsRef.current.has(stem.uid)) {
+          enteredUidsRef.current.add(stem.uid)
+          gsap.set(el, {
+            x: stem.x,
+            y: stem.y,
+            scale: reducedMotion ? stem.scale : 0,
+            opacity: reducedMotion ? 1 : 0,
+          })
+          if (!reducedMotion) {
+            gsap.to(el, { scale: stem.scale, opacity: 1, duration: TWEEN_DURATION, ease: TWEEN_EASE })
+          }
+        } else if (reducedMotion || isFirstPose) {
+          gsap.set(el, { x: stem.x, y: stem.y, scale: stem.scale, opacity: 1 })
+        } else {
+          gsap.to(el, { x: stem.x, y: stem.y, scale: stem.scale, duration: TWEEN_DURATION, ease: TWEEN_EASE })
+        }
+      }
+    },
+    { dependencies: [placed, reducedMotion], scope: containerRef }
+  )
 
   return (
-    <div className="w-full h-auto">
-      {stems.length === 0 ? (
+    <div ref={containerRef} className="w-full h-auto">
+      {displayStems.length === 0 ? (
         <svg viewBox={VIEWBOX} className="w-full h-auto" role="img" aria-label="Vista previa del ramo">
           <text x="0" y="-110" textAnchor="middle" className="fill-muted font-display italic text-[14px]">
             Añade una flor focal para empezar
           </text>
         </svg>
       ) : (
-        <BouquetSvg stems={stems} />
+        <BouquetSvg
+          stems={displayStems}
+          getGroupRef={(uid) => (el: SVGGElement | null) => {
+            if (el) groupRefs.current.set(uid, el)
+            else groupRefs.current.delete(uid)
+          }}
+        />
       )}
     </div>
   )
