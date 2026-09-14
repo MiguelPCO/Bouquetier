@@ -41,7 +41,7 @@ export async function generateMetadata({
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-canvas text-ink flex flex-col md:block md:px-10 md:py-10">
+    <main className="min-h-dvh bg-canvas text-ink flex flex-col md:block md:px-10 md:py-10">
       <Suspense fallback={null}>
         <ShareLinkSync />
       </Suspense>

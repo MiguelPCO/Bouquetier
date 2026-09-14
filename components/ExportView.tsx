@@ -23,7 +23,7 @@ export function ExportView() {
   }
 
   return (
-    <div className="space-y-8 pb-24 md:pb-0">
+    <div className="space-y-8 pb-28 md:pb-0">
       <div className="no-print flex items-center justify-between">
         <Link href="/" className="text-accent underline text-[13px]">
           ← Volver
@@ -44,13 +44,17 @@ export function ExportView() {
       <CompositionValidator />
       <AssemblyDiagram />
 
-      <div className="no-print md:hidden fixed inset-x-0 bottom-0 flex gap-2 px-4 py-3 border-t border-line bg-surface">
-        <CopyShareLinkButton />
-        <ExportPngButton />
+      <div className="no-print md:hidden fixed inset-x-0 bottom-0 flex gap-2 px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] border-t border-line bg-surface">
+        <div className="flex-1 [&>button]:w-full">
+          <CopyShareLinkButton />
+        </div>
+        <div className="flex-1 [&>button]:w-full">
+          <ExportPngButton />
+        </div>
         <button
           type="button"
           onClick={() => window.print()}
-          className="px-3 py-1.5 rounded-md border border-line text-[13px]"
+          className="flex-1 px-3 py-1.5 rounded-md border border-line text-[13px]"
         >
           Imprimir
         </button>
