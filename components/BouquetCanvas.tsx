@@ -148,6 +148,13 @@ export function BouquetCanvas() {
   // away instead of vanishing the instant the store drops it.
   useEffect(() => {
     if (lastSeededStemsRef.current === null || stems === lastSeededStemsRef.current) return
+    // Assumes `uid` is a stable identity across renders and that `species` never changes for a
+    // given `uid` while it's mounted. True for `store.add`/`store.remove` — uids are never
+    // reused, per `store/bouquet.ts`'s monotonic `nextUid` — but NOT in general for
+    // `lib/shareLink.ts`'s `decodeShareLink`, which renumbers uids from 1 on every decode.
+    // Currently safe only because `ShareLinkSync`'s `setStems` call lands before this
+    // component's hydration-seed effect can run stale data against it; worth flagging in case
+    // that ordering ever changes.
     const { entering, exiting } = diffStemUids(
       displayStems.map((s) => s.uid),
       stems.map((s) => s.uid)
@@ -161,7 +168,10 @@ export function BouquetCanvas() {
 
     if (exiting.length > 0) {
       if (reducedMotion) {
-        for (const uid of exiting) enteredUidsRef.current.delete(uid)
+        for (const uid of exiting) {
+          enteredUidsRef.current.delete(uid)
+          positionedUidsRef.current.delete(uid)
+        }
         setDisplayStems(stems)
       } else {
         let pending = exiting.length
@@ -225,6 +235,12 @@ export function BouquetCanvas() {
         }
       }
     },
+    // `revertOnUpdate` is deliberately omitted: `@gsap/react`'s default with a non-empty
+    // `dependencies` array is to NOT revert the GSAP context on a dependency change, only on
+    // unmount — this is load-bearing, since every stem's pose is set imperatively via
+    // `gsap.set`/`gsap.to` on refs rather than derived from React state on each render. If a
+    // future edit added `revertOnUpdate: true` here, every stem would snap back to its
+    // pre-GSAP origin on every `placed` change instead of holding its animated position.
     { dependencies: [placed, reducedMotion], scope: containerRef }
   )
 

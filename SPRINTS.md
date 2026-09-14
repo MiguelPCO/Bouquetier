@@ -92,7 +92,10 @@ Un sprint = una sesión de trabajo con entregable verificable. No se avanza al s
 
 **Hecho.** Transiciones GSAP en añadir/quitar (con `prefers-reduced-motion`), foco de
 teclado visible, fix de contraste WCAG AA, y [`CASE_STUDY.md`](CASE_STUDY.md) en la raíz
-del repo.
+del repo. El Lighthouse ≥ 95 / CLS < 0.1 ya se cumplía en el baseline medido en producción
+*antes* de este sprint (de ahí que el único hallazgo fuera el contraste); GSAP y el layout
+effect de este sprint no se han vuelto a medir después, así que toca repetir el Lighthouse
+tras desplegar esta rama.
 
 ---
 

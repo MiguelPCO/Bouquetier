@@ -26,8 +26,8 @@ el catálogo. El pipeline de normalización de fotos (`docs/photo-pipeline.md`) 
 repo como referencia, sin borrar, pero sin uso en producción.
 
 **Enlaces compartibles sin cuentas.** Compartir un ramo no debía requerir registrarse ni
-guardar nada en un servidor. El estado completo del ramo (qué especies, cuántas) vive
-codificado en la propia URL (`?s=especie:cantidad,...`), y una imagen de vista previa
+guardar nada en un servidor. Qué especies y cuántas hay en el ramo vive codificado en la
+propia URL (`?s=especie:cantidad,...`), y una imagen de vista previa
 (Open Graph) se genera al vuelo a partir de ese mismo parámetro — así un enlace pegado en
 WhatsApp muestra el ramo exacto sin que nadie tenga que abrir la app primero. El detalle
 técnico de esa decisión está documentado en
@@ -53,8 +53,9 @@ compartido abierto en otro dispositivo)*
 - **Zustand 5** para estado global, con persistencia en `localStorage`
 - **nuqs** para sincronizar el estado del ramo con la URL (`?s=...`)
 - **GSAP** (`@gsap/react`) para las transiciones de añadir/quitar flores
-- **sharp** para rasterizar el SVG del ramo a PNG, tanto en la imagen Open Graph
-  (`app/api/og/route.ts`) como en el export manual
+- **sharp** para rasterizar el SVG del ramo a PNG en el servidor (imagen Open Graph,
+  `app/api/og/route.ts`); el export manual del ramo (`lib/exportPng.ts`) usa el Canvas API
+  del navegador directamente, sin dependencias nuevas
 - **Vitest** para los tests unitarios de la lógica de layout, catálogo, codificación de
   enlaces y contraste de color
 

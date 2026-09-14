@@ -29,7 +29,8 @@ Bouquetier resuelve las tres a la vez: composición visual, precio estimado y di
 - [Tailwind CSS v4](https://tailwindcss.com/) (CSS-first), tokens de color en OKLCH
 - [Zustand](https://github.com/pmndrs/zustand) para estado global, con persistencia en `localStorage`
 - [Vitest](https://vitest.dev/) para tests unitarios
-- [sharp](https://sharp.pixelplumbing.com/) para el pipeline de normalización de fotos
+- [sharp](https://sharp.pixelplumbing.com/) para el pipeline de normalización de fotos y para
+  rasterizar la imagen Open Graph en el servidor (`app/api/og/route.ts`)
 - Despliegue en [Vercel](https://vercel.com/)
 
 ## Desarrollo
@@ -48,6 +49,7 @@ Prototipo en fase de validación. El motor de composición, las medidas reales, 
 
 ## Documentación
 
+- [`CASE_STUDY.md`](CASE_STUDY.md) — caso de estudio: problema, decisiones de diseño y stack
 - [`PRD.md`](PRD.md) — producto, alcance, decisiones y riesgos
 - [`SCHEMA.md`](SCHEMA.md) — modelo de datos de especies
 - [`SPRINTS.md`](SPRINTS.md) — plan de desarrollo por sprints
