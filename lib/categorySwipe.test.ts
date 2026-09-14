@@ -41,4 +41,8 @@ describe('resolveActiveCategory', () => {
     ]
     expect(resolveActiveCategory(panels, 'filler')).toBe('focal')
   })
+
+  it('returns the previous active category when given an empty panel list', () => {
+    expect(resolveActiveCategory([], 'filler')).toBe('filler')
+  })
 })

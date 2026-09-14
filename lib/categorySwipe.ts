@@ -13,7 +13,8 @@ export interface PanelVisibility {
  * yet — doesn't flicker the segmented control.
  */
 export function resolveActiveCategory(panels: PanelVisibility[], previousActive: Role): Role {
-  let best = panels[0]
+  if (panels.length === 0) return previousActive
+  let best = panels[0]!
   for (const panel of panels) {
     if (panel.intersectionRatio > best.intersectionRatio) best = panel
   }
