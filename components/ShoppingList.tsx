@@ -28,7 +28,8 @@ export function ShoppingList() {
         return (
           <div key={role}>
             <h3 className="text-[11px] font-medium text-muted mb-1">{ROLE_LABEL[role]}</h3>
-            <table className="w-full text-[12.5px]">
+
+            <table className="hidden md:table w-full text-[12.5px]">
               <thead>
                 <tr className="text-[10.5px] text-muted text-left">
                   <th className="py-1 font-normal">Especie</th>
@@ -57,6 +58,31 @@ export function ShoppingList() {
                 ))}
               </tbody>
             </table>
+
+            <div className="md:hidden bg-surface border border-line rounded-xl overflow-hidden divide-y divide-line">
+              {roleLines.map((line) => (
+                <div key={line.speciesId} className="flex items-center justify-between px-3 py-2.5">
+                  <div>
+                    <div className="text-[13px]">
+                      {line.name} <span className="font-mono text-[10px] text-muted">×{line.count}</span>
+                    </div>
+                    {!line.inSeason && (
+                      <div className="text-[10.5px] text-warn mt-0.5">
+                        fuera de temporada
+                        {line.substitutes.length > 0 &&
+                          ` · ${line.substitutes.length > 1 ? 'sustitutos' : 'sustituto'}: ${line.substitutes
+                            .map((s) => s.name)
+                            .join(', ')}`}
+                      </div>
+                    )}
+                  </div>
+                  <div className="text-right">
+                    <div className="font-mono text-[12px] font-medium">{line.subtotal.toFixed(2)}€</div>
+                    <div className="font-mono text-[9.5px] text-muted">{line.unitPrice.toFixed(2)}€/ud</div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )
       })}
