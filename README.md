@@ -49,10 +49,10 @@ Prototipo en fase de validación. El motor de composición, las medidas reales, 
 
 ## Documentación
 
-- [`CASE_STUDY.md`](CASE_STUDY.md) — caso de estudio: problema, decisiones de diseño y stack
-- [`PRD.md`](PRD.md) — producto, alcance, decisiones y riesgos
-- [`SCHEMA.md`](SCHEMA.md) — modelo de datos de especies
-- [`SPRINTS.md`](SPRINTS.md) — plan de desarrollo por sprints
+- [`docs/CASE_STUDY.md`](docs/CASE_STUDY.md) — caso de estudio: problema, decisiones de diseño y stack
+- [`docs/PRD.md`](docs/PRD.md) — producto, alcance, decisiones y riesgos
+- [`docs/SCHEMA.md`](docs/SCHEMA.md) — modelo de datos de especies
+- [`docs/SPRINTS.md`](docs/SPRINTS.md) — plan de desarrollo por sprints
 - [`docs/photo-pipeline.md`](docs/photo-pipeline.md) — pipeline de normalización de fotos de especies
 - [`docs/florist-questionnaire.md`](docs/florist-questionnaire.md) — validación de la técnica de montaje con un florista profesional
 

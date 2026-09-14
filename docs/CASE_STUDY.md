@@ -22,7 +22,7 @@ normalizadas, para ver si el ramo se veía más realista. El resultado, con un r
 de 15 tallos montado en la app real, fue negativo — una especie fotografiada en primer
 plano dominaba visualmente sobre las demás, y el conjunto se veía incoherente comparado con
 el resto del ramo, todavía en SVG. Se revirtió la decisión y se volvió a SVG puro en todo
-el catálogo. El pipeline de normalización de fotos (`docs/photo-pipeline.md`) se dejó en el
+el catálogo. El pipeline de normalización de fotos (`photo-pipeline.md`) se dejó en el
 repo como referencia, sin borrar, pero sin uso en producción.
 
 **Enlaces compartibles sin cuentas.** Compartir un ramo no debía requerir registrarse ni
@@ -31,7 +31,7 @@ propia URL (`?s=especie:cantidad,...`), y una imagen de vista previa
 (Open Graph) se genera al vuelo a partir de ese mismo parámetro — así un enlace pegado en
 WhatsApp muestra el ramo exacto sin que nadie tenga que abrir la app primero. El detalle
 técnico de esa decisión está documentado en
-[`docs/adr/0001-share-link-encoding-and-og-image.md`](docs/adr/0001-share-link-encoding-and-og-image.md).
+[`adr/0001-share-link-encoding-and-og-image.md`](adr/0001-share-link-encoding-and-og-image.md).
 
 **Pulido con intención, no por checklist.** Antes de animar nada o de perseguir una
 puntuación de Lighthouse, se midió el estado real de la app en producción: ya cumplía el
@@ -61,6 +61,6 @@ compartido abierto en otro dispositivo)*
 
 ## Decisiones documentadas
 
-- [ADR 0001 — Codificación del enlace compartido e imagen Open Graph](docs/adr/0001-share-link-encoding-and-og-image.md)
-- [Pipeline de normalización de fotos (Sprint 4, referencia — no está en uso)](docs/photo-pipeline.md)
+- [ADR 0001 — Codificación del enlace compartido e imagen Open Graph](adr/0001-share-link-encoding-and-og-image.md)
+- [Pipeline de normalización de fotos (Sprint 4, referencia — no está en uso)](photo-pipeline.md)
 - Roadmap completo de sprints: [`SPRINTS.md`](SPRINTS.md)
