@@ -49,7 +49,11 @@ export function MobileBouquetBuilder() {
   }, [])
 
   const scrollToRole = useCallback((role: Role) => {
-    panelRefs.current.get(role)?.scrollIntoView({ behavior: 'smooth', inline: 'start', block: 'nearest' })
+    const reduced =
+      typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    panelRefs.current
+      .get(role)
+      ?.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', inline: 'start', block: 'nearest' })
   }, [])
 
   const counts = useMemo(() => {
@@ -60,13 +64,15 @@ export function MobileBouquetBuilder() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex-none h-[60vh] pt-1">
-        <BouquetCanvas />
+      <div className="flex-none h-[60dvh] overflow-hidden flex items-center justify-center pt-1">
+        <div className="w-full max-w-[min(100%,53dvh)]">
+          <BouquetCanvas />
+        </div>
       </div>
 
       <div
         ref={containerRef}
-        className="flex-1 min-h-0 flex overflow-x-auto snap-x snap-mandatory scroll-smooth"
+        className="flex-1 min-h-0 flex overflow-x-auto snap-x snap-mandatory motion-safe:scroll-smooth"
       >
         {ROLE_ORDER.map((role) => (
           <div
@@ -76,41 +82,44 @@ export function MobileBouquetBuilder() {
               if (el) panelRefs.current.set(role, el)
               else panelRefs.current.delete(role)
             }}
-            className="flex-none w-full snap-start overflow-x-auto flex gap-3 px-4 pb-4"
+            className="flex-none w-full snap-start overflow-y-auto px-4 pb-4"
           >
-            {SPECIES_BY_ROLE[role].map((sp) => (
-              <div
-                key={sp.id}
-                className="flex-none w-[100px] snap-start bg-surface border border-line rounded-2xl p-2.5 text-center"
-              >
-                <span
-                  className="block w-10 h-10 rounded-full border border-line mx-auto mb-2"
-                  style={{ background: sp.color }}
-                />
-                <span className="block text-[12px] font-medium">{sp.name}</span>
-                <span className="block font-display italic text-[9.5px] text-muted mb-2">{sp.latin}</span>
-                <div className="flex items-center justify-center gap-1.5">
-                  <button
-                    type="button"
-                    className="w-[22px] h-[22px] border border-line rounded disabled:opacity-30"
-                    onClick={() => remove(sp.id)}
-                    disabled={!counts[sp.id]}
-                    aria-label={`Quitar ${sp.name}`}
-                  >
-                    −
-                  </button>
-                  <span className="font-mono text-[11px] w-3.5 text-center">{counts[sp.id] ?? 0}</span>
-                  <button
-                    type="button"
-                    className="w-[22px] h-[22px] rounded bg-accent text-surface"
-                    onClick={() => add(sp)}
-                    aria-label={`Añadir ${sp.name}`}
-                  >
-                    +
-                  </button>
+            <div className="grid grid-cols-3 gap-3">
+              {SPECIES_BY_ROLE[role].map((sp) => (
+                <div key={sp.id} className="bg-surface border border-line rounded-2xl p-2.5 text-center">
+                  <span
+                    className="block w-10 h-10 rounded-full border border-line mx-auto mb-2"
+                    style={{ background: sp.color }}
+                  />
+                  <span className="block text-[12px] font-medium">{sp.name}</span>
+                  <span className="block font-display italic text-[9.5px] text-muted mb-2">{sp.latin}</span>
+                  <div className="flex items-center justify-center gap-1">
+                    <button
+                      type="button"
+                      className="w-11 h-11 -m-2.5 flex items-center justify-center disabled:opacity-30"
+                      onClick={() => remove(sp.id)}
+                      disabled={!counts[sp.id]}
+                      aria-label={`Quitar ${sp.name}`}
+                    >
+                      <span className="w-[22px] h-[22px] border border-line rounded flex items-center justify-center">
+                        −
+                      </span>
+                    </button>
+                    <span className="font-mono text-[11px] w-3.5 text-center">{counts[sp.id] ?? 0}</span>
+                    <button
+                      type="button"
+                      className="w-11 h-11 -m-2.5 flex items-center justify-center"
+                      onClick={() => add(sp)}
+                      aria-label={`Añadir ${sp.name}`}
+                    >
+                      <span className="w-[22px] h-[22px] rounded bg-accent text-surface flex items-center justify-center">
+                        +
+                      </span>
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         ))}
       </div>
