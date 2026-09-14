@@ -7,6 +7,7 @@ import { SpeciesCatalog } from '@/components/SpeciesCatalog'
 import { ShareLinkSync } from '@/components/ShareLinkSync'
 import { ExportPngButton } from '@/components/ExportPngButton'
 import { CopyShareLinkButton } from '@/components/CopyShareLinkButton'
+import { MobileBouquetBuilder } from '@/components/mobile/MobileBouquetBuilder'
 import { decodeShareLink, describeShareBouquet } from '@/lib/shareLink'
 
 export async function generateMetadata({
@@ -40,21 +41,29 @@ export async function generateMetadata({
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-canvas text-ink px-6 py-10 md:px-10">
+    <main className="min-h-screen bg-canvas text-ink flex flex-col md:block md:px-10 md:py-10">
       <Suspense fallback={null}>
         <ShareLinkSync />
       </Suspense>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="font-display text-2xl font-semibold">Monta tu ramo</h1>
-        <div className="flex items-center gap-3">
+      <div className="flex items-center justify-between px-5 pt-5 pb-3 md:px-0 md:pt-0 md:pb-6">
+        <h1 className="font-display text-xl md:text-2xl font-semibold">Monta tu ramo</h1>
+        <div className="hidden md:flex items-center gap-3">
           <CopyShareLinkButton />
           <ExportPngButton />
           <Link href="/export" className="text-accent underline text-[13px]">
             Exportar →
           </Link>
         </div>
+        <Link href="/export" className="md:hidden text-accent underline text-[13px]">
+          Exportar →
+        </Link>
       </div>
-      <div className="grid gap-6 md:grid-cols-[260px_1fr]">
+
+      <div className="md:hidden flex-1 min-h-0">
+        <MobileBouquetBuilder />
+      </div>
+
+      <div className="hidden md:grid gap-6 md:grid-cols-[260px_1fr]">
         <SpeciesCatalog />
         <div className="bg-surface border border-line rounded-xl p-4">
           <BouquetCanvas />
