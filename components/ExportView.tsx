@@ -6,6 +6,7 @@ import { ShoppingList } from './ShoppingList'
 import { CompositionValidator } from './CompositionValidator'
 import { AssemblyDiagram } from './AssemblyDiagram'
 import { ExportPngButton } from './ExportPngButton'
+import { CopyShareLinkButton } from './CopyShareLinkButton'
 
 export function ExportView() {
   const stems = useBouquetStore((state) => state.stems)
@@ -22,12 +23,13 @@ export function ExportView() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 pb-24 md:pb-0">
       <div className="no-print flex items-center justify-between">
         <Link href="/" className="text-accent underline text-[13px]">
           ← Volver
         </Link>
-        <div className="flex items-center gap-2">
+        <div className="hidden md:flex items-center gap-2">
+          <CopyShareLinkButton />
           <ExportPngButton />
           <button
             type="button"
@@ -41,6 +43,18 @@ export function ExportView() {
       <ShoppingList />
       <CompositionValidator />
       <AssemblyDiagram />
+
+      <div className="no-print md:hidden fixed inset-x-0 bottom-0 flex gap-2 px-4 py-3 border-t border-line bg-surface">
+        <CopyShareLinkButton />
+        <ExportPngButton />
+        <button
+          type="button"
+          onClick={() => window.print()}
+          className="px-3 py-1.5 rounded-md border border-line text-[13px]"
+        >
+          Imprimir
+        </button>
+      </div>
     </div>
   )
 }
