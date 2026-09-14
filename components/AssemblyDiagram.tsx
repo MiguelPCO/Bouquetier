@@ -5,20 +5,21 @@ import { useBouquetStore } from '@/store/bouquet'
 import { layout, DEFAULT_COMPOSITION, autoDensity } from '@/lib/vogel'
 import { buildAssemblyDiagram } from '@/lib/assembly'
 
+const MOBILE_STEP_LIMIT = 6
+
 export function AssemblyDiagram() {
   const stems = useBouquetStore((state) => state.stems)
   const density = useMemo(() => autoDensity(stems), [stems])
   const placed = useMemo(() => layout(stems, { ...DEFAULT_COMPOSITION, density }), [stems, density])
   const steps = useMemo(() => buildAssemblyDiagram(placed), [placed])
   const ordered = useMemo(() => [...steps].sort((a, b) => a.handOrder - b.handOrder), [steps])
-  const MOBILE_STEP_LIMIT = 6
   const visibleMobile = ordered.slice(0, MOBILE_STEP_LIMIT)
   const remainingMobile = ordered.length - visibleMobile.length
 
   return (
     <section className="space-y-2">
       <h2 className="font-mono text-[10px] uppercase tracking-[0.13em] text-muted">Diagrama de montaje</h2>
-      <svg viewBox="-160 -160 320 320" className="w-full h-auto max-w-[220px] mx-auto md:max-w-sm md:mx-0" role="img" aria-label="Diagrama de ángulos y cortes">
+      <svg viewBox="-160 -160 320 320" className="w-full h-auto max-w-[220px] mx-auto md:max-w-sm md:mx-0 print:max-w-sm print:mx-0" role="img" aria-label="Diagrama de ángulos y cortes">
         <circle cx="0" cy="0" r="4" fill="var(--color-accent)" />
         {steps.map((step) => {
           const rad = (step.angleDeg * Math.PI) / 180
@@ -41,7 +42,7 @@ export function AssemblyDiagram() {
           )
         })}
       </svg>
-      <ol className="hidden md:block text-[11.5px] space-y-0.5">
+      <ol className="hidden md:block print:block text-[11.5px] space-y-0.5">
         {ordered.map((step) => (
           <li key={step.uid} className={step.exceedsMaxTilt ? 'text-warn' : undefined}>
             {step.exceedsMaxTilt ? '⚠ ' : ''}
@@ -50,18 +51,34 @@ export function AssemblyDiagram() {
           </li>
         ))}
       </ol>
-      <ol className="md:hidden text-[11.5px] space-y-0.5">
-        {visibleMobile.map((step) => (
-          <li key={step.uid} className={step.exceedsMaxTilt ? 'text-warn' : undefined}>
-            {step.exceedsMaxTilt ? '⚠ ' : ''}
-            {step.handOrder}. {step.speciesName} — corte {step.cutCm}cm, mango {step.handleCm.toFixed(1)}cm, ángulo{' '}
-            {step.angleDeg.toFixed(0)}°
-          </li>
-        ))}
-      </ol>
-      {remainingMobile > 0 && (
-        <p className="md:hidden font-mono text-[10px] text-muted mt-1.5">+ {remainingMobile} pasos más →</p>
-      )}
+      <div className="md:hidden print:hidden">
+        <ol className="text-[11.5px] space-y-0.5">
+          {visibleMobile.map((step) => (
+            <li key={step.uid} className={step.exceedsMaxTilt ? 'text-warn' : undefined}>
+              {step.exceedsMaxTilt ? '⚠ ' : ''}
+              {step.handOrder}. {step.speciesName} — corte {step.cutCm}cm, mango {step.handleCm.toFixed(1)}cm, ángulo{' '}
+              {step.angleDeg.toFixed(0)}°
+            </li>
+          ))}
+        </ol>
+        {remainingMobile > 0 && (
+          <details className="mt-1.5">
+            <summary className="font-mono text-[10px] text-muted cursor-pointer select-none">
+              + {remainingMobile} pasos más
+              {ordered.slice(MOBILE_STEP_LIMIT).some((step) => step.exceedsMaxTilt) ? ' (incluye aviso ⚠)' : ''}
+            </summary>
+            <ol className="text-[11.5px] space-y-0.5 mt-1">
+              {ordered.slice(MOBILE_STEP_LIMIT).map((step) => (
+                <li key={step.uid} className={step.exceedsMaxTilt ? 'text-warn' : undefined}>
+                  {step.exceedsMaxTilt ? '⚠ ' : ''}
+                  {step.handOrder}. {step.speciesName} — corte {step.cutCm}cm, mango {step.handleCm.toFixed(1)}cm, ángulo{' '}
+                  {step.angleDeg.toFixed(0)}°
+                </li>
+              ))}
+            </ol>
+          </details>
+        )}
+      </div>
     </section>
   )
 }
