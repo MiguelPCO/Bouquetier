@@ -90,6 +90,10 @@ Un sprint = una sesión de trabajo con entregable verificable. No se avanza al s
 
 **Hecho cuando** se puede enseñar sin explicar nada.
 
+**Hecho.** Transiciones GSAP en añadir/quitar (con `prefers-reduced-motion`), foco de
+teclado visible, fix de contraste WCAG AA, y [`CASE_STUDY.md`](CASE_STUDY.md) en la raíz
+del repo.
+
 ---
 
 ## Fuera de alcance hasta que v1 esté publicada
