@@ -41,12 +41,12 @@ export async function generateMetadata({
 
 export default function Home() {
   return (
-    <main className="min-h-dvh bg-canvas text-ink flex flex-col md:block md:px-10 md:py-10">
+    <main className="h-dvh md:min-h-screen md:h-auto bg-canvas text-ink flex flex-col md:block md:px-10 md:py-10">
       <Suspense fallback={null}>
         <ShareLinkSync />
       </Suspense>
-      <div className="flex items-center justify-between px-5 pt-5 pb-3 md:px-0 md:pt-0 md:pb-6">
-        <h1 className="font-display text-xl md:text-2xl font-semibold">Monta tu ramo</h1>
+      <div className="flex items-center justify-between px-5 pt-3 pb-2 md:px-0 md:pt-0 md:pb-6">
+        <h1 className="font-display text-lg md:text-2xl font-semibold">Monta tu ramo</h1>
         <div className="hidden md:flex items-center gap-3">
           <CopyShareLinkButton />
           <ExportPngButton />

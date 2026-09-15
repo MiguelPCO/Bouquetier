@@ -64,8 +64,8 @@ export function MobileBouquetBuilder() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex-none h-[60dvh] overflow-hidden flex items-center justify-center pt-1">
-        <div className="w-full max-w-[min(100%,53dvh)]">
+      <div className="flex-none h-[36dvh] overflow-hidden flex items-center justify-center pt-1">
+        <div className="w-full max-w-[min(100%,32dvh)]">
           <BouquetCanvas />
         </div>
       </div>
@@ -82,37 +82,39 @@ export function MobileBouquetBuilder() {
               if (el) panelRefs.current.set(role, el)
               else panelRefs.current.delete(role)
             }}
-            className="flex-none w-full snap-start overflow-y-auto px-4 pb-4"
+            className="flex-none w-full h-full flex flex-col snap-start overflow-y-auto px-4"
           >
-            <div className="grid grid-cols-3 gap-3">
+            <h2 className="flex-none font-display text-[13px] font-semibold pt-1 pb-1 sticky top-0 bg-canvas z-10">
+              {ROLE_LABEL[role]}
+            </h2>
+            <div className="grid grid-cols-3 gap-1.5 pb-1.5">
               {SPECIES_BY_ROLE[role].map((sp) => (
-                <div key={sp.id} className="bg-surface border border-line rounded-2xl p-2.5 text-center">
+                <div key={sp.id} className="bg-surface border border-line rounded-xl p-1 text-center">
                   <span
-                    className="block w-10 h-10 rounded-full border border-line mx-auto mb-2"
+                    className="block w-7 h-7 rounded-full border border-line mx-auto mb-1"
                     style={{ background: sp.color }}
                   />
-                  <span className="block text-[12px] font-medium">{sp.name}</span>
-                  <span className="block font-display italic text-[9.5px] text-muted mb-2">{sp.latin}</span>
-                  <div className="flex items-center justify-center gap-1">
+                  <span className="block text-[10.5px] font-medium leading-tight truncate">{sp.name}</span>
+                  <div className="flex items-center justify-center gap-1 mt-1">
                     <button
                       type="button"
-                      className="w-11 h-11 -m-2.5 flex items-center justify-center disabled:opacity-30"
+                      className="w-9 h-9 -m-1.5 flex items-center justify-center disabled:opacity-30"
                       onClick={() => remove(sp.id)}
                       disabled={!counts[sp.id]}
                       aria-label={`Quitar ${sp.name}`}
                     >
-                      <span className="w-[22px] h-[22px] border border-line rounded flex items-center justify-center">
+                      <span className="w-[20px] h-[20px] border border-line rounded flex items-center justify-center text-[11px]">
                         −
                       </span>
                     </button>
-                    <span className="font-mono text-[11px] w-3.5 text-center">{counts[sp.id] ?? 0}</span>
+                    <span className="font-mono text-[10px] w-3 text-center">{counts[sp.id] ?? 0}</span>
                     <button
                       type="button"
-                      className="w-11 h-11 -m-2.5 flex items-center justify-center"
+                      className="w-9 h-9 -m-1.5 flex items-center justify-center"
                       onClick={() => add(sp)}
                       aria-label={`Añadir ${sp.name}`}
                     >
-                      <span className="w-[22px] h-[22px] rounded bg-accent text-surface flex items-center justify-center">
+                      <span className="w-[20px] h-[20px] rounded bg-accent text-surface flex items-center justify-center text-[11px]">
                         +
                       </span>
                     </button>
@@ -124,14 +126,14 @@ export function MobileBouquetBuilder() {
         ))}
       </div>
 
-      <div className="flex-none flex border-t border-line bg-surface px-2.5 py-2">
+      <div className="flex-none flex border-t border-line bg-surface px-2.5 py-1.5">
         {ROLE_ORDER.map((role) => (
           <button
             key={role}
             type="button"
             onClick={() => scrollToRole(role)}
             aria-pressed={active === role}
-            className={`flex-1 text-center font-mono text-[10.5px] py-3 rounded-lg ${
+            className={`flex-1 text-center font-mono text-[10.5px] py-2.5 rounded-lg ${
               active === role ? 'bg-accent text-surface' : 'text-muted'
             }`}
           >
