@@ -8,6 +8,13 @@ interface FlowerHeadProps {
   size: number
   color: string
   uid: number
+  /** Distinguishes this SVG's gradient/pattern ids from another BouquetSvg mounted
+   *  elsewhere in the same document (e.g. the mobile and desktop bouquet canvases render
+   *  simultaneously with `md:hidden`/`hidden md:block` — both draw the same stem uids, and
+   *  without this prefix their gradient ids collide. Per SVG's `url(#id)` resolution, a
+   *  duplicate id anywhere in the document — even inside a `display:none` subtree — can win
+   *  the reference, silently making every petal fill resolve to nothing. */
+  instanceId?: string
 }
 
 function petal(length: number, width: number): string {
@@ -52,8 +59,8 @@ function PetalRings({
   )
 }
 
-export function FlowerHead({ shape, size: s, color, uid }: FlowerHeadProps) {
-  const gradId = `fh-${shape}-${uid}`
+export function FlowerHead({ shape, size: s, color, uid, instanceId }: FlowerHeadProps) {
+  const gradId = `fh-${instanceId ?? 'x'}-${shape}-${uid}`
   // Species colors are `oklch()` strings. Browsers parse those, but `sharp`/librsvg (the
   // server-side rasterizer behind app/api/og/route.ts) does not — it silently paints them
   // black. Convert once here so every fill/stop-color below is a plain hex that renders

@@ -1,7 +1,7 @@
 // components/BouquetCanvas.tsx
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import gsap from 'gsap'
 import { useGSAP } from '@gsap/react'
 import { useBouquetStore } from '@/store/bouquet'
@@ -75,6 +75,12 @@ function useHasHydrated(): boolean {
 export function BouquetCanvas() {
   const stems = useBouquetStore((state) => state.stems)
   const hydrated = useHasHydrated()
+  // The mobile and desktop layouts render their own BouquetCanvas simultaneously (one
+  // `md:hidden`, the other `hidden md:...`) — see FlowerHeadProps.instanceId for why each
+  // instance needs a distinct id namespace for its gradients.
+  // `useId()`'s raw value (e.g. `:r0:`) is valid in an id/url(#...) reference, but stripped
+  // to plain word characters here to avoid relying on that edge case.
+  const instanceId = useId().replace(/[^a-zA-Z0-9]/g, '')
   // MUST start empty (`[]`), never eagerly seeded from `stems` here: `stems` can still be the
   // pre-hydration snapshot on this first render (see `useHasHydrated` above), and seeding from
   // it directly — bypassing the seed effect below — is exactly the bug this file works around.
@@ -255,6 +261,7 @@ export function BouquetCanvas() {
       ) : (
         <BouquetSvg
           stems={displayStems}
+          instanceId={instanceId}
           getGroupRef={(uid) => (el: SVGGElement | null) => {
             if (el) groupRefs.current.set(uid, el)
             else groupRefs.current.delete(uid)

@@ -21,6 +21,9 @@ interface BouquetSvgProps {
   stems: Stem[]
   /** CSS color for a background rect filling the viewBox. Omit for a transparent export. */
   background?: string
+  /** Forwarded to FlowerHead to keep this SVG's gradient ids from colliding with another
+   *  BouquetSvg mounted elsewhere in the same document — see FlowerHeadProps.instanceId. */
+  instanceId?: string
   /**
    * When provided, BouquetCanvas (the interactive, client-only view) uses this to grab a ref
    * to each stem's flower-head <g> and drives its position/scale with GSAP instead of the
@@ -30,7 +33,7 @@ interface BouquetSvgProps {
   getGroupRef?: (uid: number) => (el: SVGGElement | null) => void
 }
 
-export function BouquetSvg({ stems, background, getGroupRef }: BouquetSvgProps) {
+export function BouquetSvg({ stems, background, instanceId, getGroupRef }: BouquetSvgProps) {
   const density = autoDensity(stems)
   const placed = layout(stems, { ...DEFAULT_COMPOSITION, density })
 
@@ -64,7 +67,13 @@ export function BouquetSvg({ stems, background, getGroupRef }: BouquetSvgProps) 
               ref={getGroupRef?.(stem.uid)}
               transform={getGroupRef ? undefined : `translate(${stem.x} ${stem.y}) scale(${stem.scale})`}
             >
-              <FlowerHead shape={stem.species.shape} size={headPx(stem.species)} color={stem.species.color} uid={stem.uid} />
+              <FlowerHead
+                shape={stem.species.shape}
+                size={headPx(stem.species)}
+                color={stem.species.color}
+                uid={stem.uid}
+                instanceId={instanceId}
+              />
             </g>
           </g>
         )
