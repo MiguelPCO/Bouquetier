@@ -62,11 +62,53 @@ export function MobileBouquetBuilder() {
     return c
   }, [stems])
 
+  const activeIndex = ROLE_ORDER.indexOf(active)
+  const prevRole = ROLE_ORDER[(activeIndex - 1 + ROLE_ORDER.length) % ROLE_ORDER.length]!
+  const nextRole = ROLE_ORDER[(activeIndex + 1) % ROLE_ORDER.length]!
+
   return (
     <div className="flex flex-col h-full">
-      <div className="flex-none h-[36dvh] overflow-hidden flex items-center justify-center pt-1">
-        <div className="w-full max-w-[min(100%,32dvh)]">
+      <div className="flex-none h-[34dvh] overflow-hidden flex items-center justify-center pt-1">
+        <div className="w-full max-w-[min(100%,30dvh)]">
           <BouquetCanvas />
+        </div>
+      </div>
+
+      <div className="flex-none flex flex-col items-center gap-1 py-1.5">
+        <div className="flex items-center justify-center gap-3">
+          <button
+            type="button"
+            onClick={() => scrollToRole(prevRole)}
+            aria-label={`Ir a ${ROLE_LABEL[prevRole]}`}
+            className="px-2 py-2 text-muted text-[11px] font-mono uppercase tracking-wide"
+          >
+            <span aria-hidden>‹</span> {ROLE_LABEL[prevRole]}
+          </button>
+          <span className="font-display text-lg font-bold text-accent min-w-[6.5rem] text-center">
+            {ROLE_LABEL[active]}
+          </span>
+          <button
+            type="button"
+            onClick={() => scrollToRole(nextRole)}
+            aria-label={`Ir a ${ROLE_LABEL[nextRole]}`}
+            className="px-2 py-2 text-muted text-[11px] font-mono uppercase tracking-wide"
+          >
+            {ROLE_LABEL[nextRole]} <span aria-hidden>›</span>
+          </button>
+        </div>
+        <div className="flex items-center gap-1.5">
+          {ROLE_ORDER.map((role) => (
+            <button
+              key={role}
+              type="button"
+              onClick={() => scrollToRole(role)}
+              aria-label={`Ir a ${ROLE_LABEL[role]}`}
+              aria-current={active === role}
+              className="p-2 -m-2"
+            >
+              <span className={`block w-1.5 h-1.5 rounded-full ${active === role ? 'bg-accent' : 'bg-line'}`} />
+            </button>
+          ))}
         </div>
       </div>
 
@@ -84,9 +126,6 @@ export function MobileBouquetBuilder() {
             }}
             className="flex-none w-full h-full flex flex-col snap-start overflow-y-auto px-4"
           >
-            <h2 className="flex-none font-display text-[13px] font-semibold pt-1 pb-1 sticky top-0 bg-canvas z-10">
-              {ROLE_LABEL[role]}
-            </h2>
             <div className="grid grid-cols-3 gap-1.5 pb-1.5">
               {SPECIES_BY_ROLE[role].map((sp) => (
                 <div key={sp.id} className="bg-surface border border-line rounded-xl p-1 text-center">
@@ -123,22 +162,6 @@ export function MobileBouquetBuilder() {
               ))}
             </div>
           </div>
-        ))}
-      </div>
-
-      <div className="flex-none flex border-t border-line bg-surface px-2.5 py-1.5">
-        {ROLE_ORDER.map((role) => (
-          <button
-            key={role}
-            type="button"
-            onClick={() => scrollToRole(role)}
-            aria-pressed={active === role}
-            className={`flex-1 text-center font-mono text-[10.5px] py-2.5 rounded-lg ${
-              active === role ? 'bg-accent text-surface' : 'text-muted'
-            }`}
-          >
-            {ROLE_LABEL[role]}
-          </button>
         ))}
       </div>
     </div>
