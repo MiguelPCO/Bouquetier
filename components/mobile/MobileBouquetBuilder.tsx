@@ -69,8 +69,6 @@ export function MobileBouquetBuilder() {
     [scrollToRole]
   )
 
-  const toggleSheet = useCallback(() => setSheetExpanded((v) => !v), [])
-
   const handleGripPointerDown = useCallback((e: React.PointerEvent) => {
     dragStartY.current = e.clientY
   }, [])
@@ -132,7 +130,11 @@ export function MobileBouquetBuilder() {
             <span className="block w-9 h-1 rounded-full bg-line" aria-hidden />
           </button>
 
-          <div onClick={toggleSheet} className="flex-none flex flex-col items-center gap-1 pb-1.5 cursor-pointer">
+          {/* No onClick here: this row's own toggle-tap convenience nested real <button>s
+              inside a role="button" wrapper, which is worse for a11y (nested interactive
+              controls) than dropping it — the grip <button> above is the accessible way to
+              collapse/expand the sheet, and it's the sole element that does it via tap. */}
+          <div className="flex-none flex flex-col items-center gap-1 pb-1.5">
             <div className="flex items-center justify-center gap-3">
               <button
                 type="button"

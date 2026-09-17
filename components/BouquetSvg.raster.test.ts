@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
 import sharp from 'sharp'
-import { BouquetSvg, BOUQUET_VIEWBOX } from './BouquetSvg'
+import { BouquetSvg } from './BouquetSvg'
+import { BOUQUET_VIEWBOX } from '@/lib/vogel'
 import { SPECIES } from '@/lib/species'
 
 /**

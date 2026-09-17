@@ -1,5 +1,10 @@
 import type { Species, Stem, Role } from './species'
 
+/** The single source of truth for the bouquet drawing's coordinate frame. Anything that
+ *  needs the same frame — BouquetCanvas's empty state, exportPng's output aspect ratio —
+ *  derives it from here instead of re-typing the numbers. */
+export const BOUQUET_VIEWBOX = { x: -200, y: -310, width: 400, height: 450 } as const
+
 export const GOLDEN = (137.5 * Math.PI) / 180
 export const PX_PER_CM = 2.8
 

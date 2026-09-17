@@ -1,7 +1,8 @@
 // lib/exportPng.ts
 'use client'
 
-import { BouquetSvg, BOUQUET_VIEWBOX } from '@/components/BouquetSvg'
+import { BouquetSvg } from '@/components/BouquetSvg'
+import { BOUQUET_VIEWBOX } from '@/lib/vogel'
 import type { Stem } from './species'
 
 const EXPORT_WIDTH = 900

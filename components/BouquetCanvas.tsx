@@ -5,8 +5,8 @@ import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import gsap from 'gsap'
 import { useGSAP } from '@gsap/react'
 import { useBouquetStore } from '@/store/bouquet'
-import { BouquetSvg, BOUQUET_VIEWBOX } from './BouquetSvg'
-import { layout, autoDensity, DEFAULT_COMPOSITION } from '@/lib/vogel'
+import { BouquetSvg } from './BouquetSvg'
+import { layout, autoDensity, DEFAULT_COMPOSITION, BOUQUET_VIEWBOX } from '@/lib/vogel'
 import { diffStemUids } from '@/lib/animationDiff'
 import type { Stem } from '@/lib/species'
 
@@ -168,7 +168,8 @@ export function BouquetCanvas() {
     if (entering.length === 0 && exiting.length === 0) return
 
     if (entering.length > 0) {
-      const newStems = stems.filter((s) => entering.includes(s.uid))
+      const enteringSet = new Set(entering)
+      const newStems = stems.filter((s) => enteringSet.has(s.uid))
       setDisplayStems((prev) => [...prev, ...newStems])
     }
 
@@ -181,13 +182,14 @@ export function BouquetCanvas() {
         setDisplayStems(stems)
       } else {
         let pending = exiting.length
+        const exitingSet = new Set(exiting)
         const finishExit = (uid: number) => {
           enteredUidsRef.current.delete(uid)
           positionedUidsRef.current.delete(uid)
           exitingUidsRef.current.delete(uid)
           pending -= 1
           if (pending === 0) {
-            setDisplayStems((prev) => prev.filter((s) => !exiting.includes(s.uid)))
+            setDisplayStems((prev) => prev.filter((s) => !exitingSet.has(s.uid)))
           }
         }
         for (const uid of exiting) {

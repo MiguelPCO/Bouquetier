@@ -1,12 +1,7 @@
 // components/BouquetSvg.tsx
 import type { Stem } from '@/lib/species'
-import { layout, noise, headPx, autoDensity, DEFAULT_COMPOSITION } from '@/lib/vogel'
+import { layout, noise, headPx, autoDensity, DEFAULT_COMPOSITION, BOUQUET_VIEWBOX } from '@/lib/vogel'
 import { FlowerHead } from './FlowerHead'
-
-/** The single source of truth for the bouquet drawing's coordinate frame. Anything that
- *  needs the same frame — BouquetCanvas's empty state, exportPng's output aspect ratio —
- *  derives it from here instead of re-typing the numbers. */
-export const BOUQUET_VIEWBOX = { x: -200, y: -310, width: 400, height: 450 } as const
 
 const VIEWBOX = `${BOUQUET_VIEWBOX.x} ${BOUQUET_VIEWBOX.y} ${BOUQUET_VIEWBOX.width} ${BOUQUET_VIEWBOX.height}`
 
