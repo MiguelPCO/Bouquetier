@@ -104,7 +104,7 @@ export function MobileBouquetBuilder() {
       <div
         className={
           sheetExpanded
-            ? 'flex-none overflow-hidden flex items-center justify-center pt-1 transition-[height] duration-300 ease-out motion-reduce:transition-none h-[46dvh]'
+            ? 'flex-none overflow-hidden flex items-center justify-center pt-1 transition-[height] duration-300 ease-out motion-reduce:transition-none h-[56dvh]'
             : 'flex-none overflow-hidden flex items-center justify-center pt-1 transition-[height] duration-300 ease-out motion-reduce:transition-none h-[calc(100%-4.75rem)]'
         }
       >
@@ -116,7 +116,7 @@ export function MobileBouquetBuilder() {
       <div
         className={
           sheetExpanded
-            ? 'flex-none flex flex-col overflow-hidden transition-[height] duration-300 ease-out motion-reduce:transition-none h-[calc(100%-46dvh)]'
+            ? 'flex-none flex flex-col overflow-hidden transition-[height] duration-300 ease-out motion-reduce:transition-none h-[calc(100%-56dvh)]'
             : 'flex-none flex flex-col overflow-hidden transition-[height] duration-300 ease-out motion-reduce:transition-none h-[4.75rem]'
         }
       >
