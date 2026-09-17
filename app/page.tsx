@@ -65,7 +65,7 @@ export default function Home() {
 
       <div className="hidden md:grid gap-6 md:grid-cols-[260px_1fr]">
         <SpeciesCatalog />
-        <div className="bg-surface border border-line rounded-xl p-4 w-full max-w-[420px] mx-auto self-start">
+        <div className="bg-surface border border-line rounded-xl p-4 w-full max-w-[720px] mx-auto self-start">
           <BouquetCanvas />
         </div>
       </div>
