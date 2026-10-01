@@ -143,7 +143,7 @@ export function MobileBouquetBuilder() {
                   goToRole(prevRole)
                 }}
                 aria-label={`Ir a ${ROLE_LABEL[prevRole]}`}
-                className="px-2 py-2 text-muted text-[11px] font-mono uppercase tracking-wide"
+                className="px-2 py-2 text-muted text-[11px] font-mono uppercase tracking-wide min-w-[5.75rem] text-center"
               >
                 <span aria-hidden>‹</span> {ROLE_LABEL[prevRole]}
               </button>
@@ -157,7 +157,7 @@ export function MobileBouquetBuilder() {
                   goToRole(nextRole)
                 }}
                 aria-label={`Ir a ${ROLE_LABEL[nextRole]}`}
-                className="px-2 py-2 text-muted text-[11px] font-mono uppercase tracking-wide"
+                className="px-2 py-2 text-muted text-[11px] font-mono uppercase tracking-wide min-w-[5.75rem] text-center"
               >
                 {ROLE_LABEL[nextRole]} <span aria-hidden>›</span>
               </button>
