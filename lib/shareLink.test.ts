@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { encodeShareLink, decodeShareLink, describeShareBouquet, MAX_STEMS } from './shareLink'
+import { encodeShareLink, decodeShareLink, describeShareBouquet, MAX_STEMS, OG_MAX_STEMS, ogShareParam } from './shareLink'
 import { SPECIES } from './species'
 
 const peonia = SPECIES.find((s) => s.id === 'peonia')!
@@ -82,6 +82,18 @@ describe('decodeShareLink', () => {
 
   it('leaves realistic bouquets untouched by the cap', () => {
     expect(decodeShareLink('peonia:12,dalia:12')).toHaveLength(24)
+  })
+})
+
+describe('ogShareParam', () => {
+  it('gives every spelling of the same bouquet one canonical param', () => {
+    for (const spelling of ['peonia:2,dalia:1', 'peonia:02,dalia:1.9', 'peonia:1,dalia:1,peonia:1', 'peonia:2,nope:5,dalia:1']) {
+      expect(ogShareParam(decodeShareLink(spelling))).toBe('peonia:2,dalia:1')
+    }
+  })
+
+  it('caps the preview at OG_MAX_STEMS', () => {
+    expect(ogShareParam(decodeShareLink(`peonia:${MAX_STEMS}`))).toBe(`peonia:${OG_MAX_STEMS}`)
   })
 })
 

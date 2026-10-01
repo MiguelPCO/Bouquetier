@@ -1,6 +1,6 @@
 // app/api/og/route.ts
 import sharp from 'sharp'
-import { decodeShareLink } from '@/lib/shareLink'
+import { decodeShareLink, ogShareParam } from '@/lib/shareLink'
 import { BouquetSvg } from '@/components/BouquetSvg'
 
 export const runtime = 'nodejs'
@@ -18,7 +18,18 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
 
   try {
-    const stems = decodeShareLink(searchParams.get('s'))
+    const canonical = ogShareParam(decodeShareLink(searchParams.get('s')))
+    const stems = decodeShareLink(canonical)
+
+    // Every distinct `?s=` spelling was a cache miss that paid for a fresh render
+    // (`peonia:3`, `peonia:03`, `peonia:3,foo:1`…). Redirect anything non-canonical to
+    // its one canonical spelling, so the CDN caches one image per real bouquet and the
+    // variants only cost a redirect. app/page.tsx already emits the canonical form.
+    if ((searchParams.get('s') ?? '') !== canonical || searchParams.size > (canonical ? 1 : 0)) {
+      const url = new URL('/api/og', request.url)
+      if (canonical) url.searchParams.set('s', canonical)
+      return Response.redirect(url, 308)
+    }
 
     const svg = renderToStaticMarkup(BouquetSvg({ stems, background: '#EDECE6' }))
     const svgDocument = `<?xml version="1.0" encoding="UTF-8"?>${svg}`

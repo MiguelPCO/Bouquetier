@@ -5,7 +5,12 @@ import "./globals.css";
 
 function siteUrl(): URL {
   try {
-    return new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000");
+    // On Vercel, VERCEL_PROJECT_PRODUCTION_URL is set automatically (bare host, no scheme),
+    // so production OG images stop pointing at localhost even if NEXT_PUBLIC_SITE_URL is unset.
+    const vercelHost = process.env.VERCEL_PROJECT_PRODUCTION_URL;
+    return new URL(
+      process.env.NEXT_PUBLIC_SITE_URL ?? (vercelHost ? `https://${vercelHost}` : "http://localhost:3000"),
+    );
   } catch {
     // A malformed NEXT_PUBLIC_SITE_URL would otherwise throw at module load and crash
     // every request; fall back to localhost rather than take the whole app down over it.

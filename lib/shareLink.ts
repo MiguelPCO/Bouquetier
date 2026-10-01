@@ -22,6 +22,19 @@ export function encodeShareLink(stems: Stem[]): string {
   return [...counts.entries()].map(([id, count]) => `${id}:${count}`).join(',')
 }
 
+/**
+ * Rasterizing for the OG route is expensive (sharp at density 220), and MAX_STEMS is sized
+ * for the editor, not a 1200x630 preview. A real bouquet runs 12-24 stems, so 40 covers any
+ * legitimate link at a fifth of the old worst case.
+ */
+export const OG_MAX_STEMS = 40
+
+/** The one canonical `?s=` for a bouquet's OG image: capped and normalized, so every
+ * spelling of the same bouquet shares a single CDN cache entry. */
+export function ogShareParam(stems: Stem[]): string {
+  return encodeShareLink(stems.slice(0, OG_MAX_STEMS))
+}
+
 export function decodeShareLink(param: string | null | undefined): Stem[] {
   if (!param) return []
 

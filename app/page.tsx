@@ -8,7 +8,7 @@ import { ShareLinkSync } from '@/components/ShareLinkSync'
 import { ExportPngButton } from '@/components/ExportPngButton'
 import { CopyShareLinkButton } from '@/components/CopyShareLinkButton'
 import { MobileBouquetBuilder } from '@/components/mobile/MobileBouquetBuilder'
-import { decodeShareLink, describeShareBouquet } from '@/lib/shareLink'
+import { decodeShareLink, describeShareBouquet, ogShareParam } from '@/lib/shareLink'
 
 export async function generateMetadata({
   searchParams,
@@ -28,7 +28,7 @@ export async function generateMetadata({
   // known on the first fetch, before they've downloaded the image itself.
   const images =
     stems.length > 0
-      ? [{ url: `/api/og?s=${encodeURIComponent(s ?? '')}`, width: 1200, height: 630 }]
+      ? [{ url: `/api/og?s=${encodeURIComponent(ogShareParam(stems))}`, width: 1200, height: 630 }]
       : [{ url: '/og-fallback.png', width: 1200, height: 630 }]
 
   return {
