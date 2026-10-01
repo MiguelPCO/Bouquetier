@@ -106,7 +106,7 @@ export function MobileBouquetBuilder() {
             : 'flex-none overflow-hidden flex items-center justify-center pt-1 transition-[height] duration-300 ease-out motion-reduce:transition-none h-[calc(100%-4.75rem)]'
         }
       >
-        <div className={`w-full ${sheetExpanded ? 'max-w-[min(100%,30dvh)]' : 'max-w-[min(100%,60dvh)]'}`}>
+        <div className={`w-full ${sheetExpanded ? '' : 'max-w-[min(100%,60dvh)]'}`}>
           <BouquetCanvas />
         </div>
       </div>
