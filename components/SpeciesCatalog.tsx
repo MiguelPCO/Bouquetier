@@ -56,8 +56,8 @@ export function SpeciesCatalog() {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap gap-1.5">
+    <div className="flex flex-col max-h-[calc(100vh-10rem)]">
+      <div className="flex-none flex flex-wrap gap-1.5 pb-3">
         <button
           type="button"
           onClick={() => setSeasonOnly((v) => !v)}
@@ -83,19 +83,16 @@ export function SpeciesCatalog() {
         ))}
       </div>
 
-      <div className="space-y-3">
+      <div className="flex-1 min-h-0 overflow-y-auto pr-1 space-y-2.5">
         {ROLES.map((role) => (
           <details key={role} open className="group">
-            <summary className="font-mono text-[10px] uppercase tracking-[0.13em] text-muted mb-2 cursor-pointer select-none">
+            <summary className="font-mono text-[10px] uppercase tracking-[0.13em] text-muted mb-1 cursor-pointer select-none">
               {ROLE_LABEL[role]} ({byRole[role].length})
             </summary>
             {byRole[role].map((sp) => (
-              <div key={sp.id} className="flex items-center gap-2 py-1">
-                <span className="w-4 h-4 rounded-full border border-line flex-none" style={{ background: sp.color }} />
-                <span className="flex-1 min-w-0 leading-tight">
-                  <span className="block text-[12.5px] font-medium">{sp.name}</span>
-                  <span className="block font-display italic text-[10.5px] text-muted">{sp.latin}</span>
-                </span>
+              <div key={sp.id} className="flex items-center gap-2 py-0.5" title={sp.latin}>
+                <span className="w-3.5 h-3.5 rounded-full border border-line flex-none" style={{ background: sp.color }} />
+                <span className="flex-1 min-w-0 truncate text-[12px] font-medium">{sp.name}</span>
                 <button
                   type="button"
                   className="w-6 h-6 border border-line rounded disabled:opacity-30"
