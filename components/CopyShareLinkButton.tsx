@@ -38,7 +38,7 @@ export function CopyShareLinkButton() {
       type="button"
       onClick={handleClick}
       disabled={stems.length === 0}
-      className="px-3 py-1.5 rounded-md border border-line text-[13px] disabled:opacity-40"
+      className="px-3 py-3 rounded-md border border-line text-[13px] disabled:opacity-40"
     >
       {copied ? '¡Copiado!' : 'Copiar enlace'}
     </button>

@@ -24,7 +24,7 @@ export function ExportPngButton() {
       type="button"
       onClick={handleClick}
       disabled={stems.length === 0 || status === 'working'}
-      className="px-3 py-1.5 rounded-md border border-line text-[13px] disabled:opacity-40"
+      className="px-3 py-3 rounded-md border border-line text-[13px] disabled:opacity-40"
     >
       {status === 'working' ? 'Generando…' : status === 'error' ? 'Error, reintentar' : 'Exportar PNG'}
     </button>

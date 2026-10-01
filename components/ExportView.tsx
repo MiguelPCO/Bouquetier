@@ -34,7 +34,7 @@ export function ExportView() {
           <button
             type="button"
             onClick={() => window.print()}
-            className="px-3 py-1.5 rounded-md border border-line text-[13px]"
+            className="px-3 py-3 rounded-md border border-line text-[13px]"
           >
             Imprimir
           </button>
@@ -54,7 +54,7 @@ export function ExportView() {
         <button
           type="button"
           onClick={() => window.print()}
-          className="flex-1 px-3 py-1.5 rounded-md border border-line text-[13px]"
+          className="flex-1 px-3 py-3 rounded-md border border-line text-[13px]"
         >
           Imprimir
         </button>
